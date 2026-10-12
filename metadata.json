@@ -1,0 +1,6 @@
+{
+  "name": "NTAHUB",
+  "description": "Application d'organisation familiale et de synchronisation des plannings pour Clément (PNC) et Irène, avec gestion des vols, du télétravail, des activités des enfants et détection des créneaux libres.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
