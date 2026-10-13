@@ -7,6 +7,8 @@ import {
   Clock,
   Plus,
   CheckCircle,
+  Filter,
+  X,
 } from 'lucide-react';
 import {
   PncDayDuty,
@@ -17,6 +19,7 @@ import {
 } from '../types';
 import { computeFreeMoments } from '../utils/availability';
 import { formatFrenchDateLong } from '../utils/timezone';
+import { WeeklyFreeTimeChart } from './WeeklyFreeTimeChart';
 
 interface FreeMomentsViewProps {
   pncDuties: Map<string, PncDayDuty>;
@@ -34,11 +37,12 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
   onOpenAddEventForDate,
 }) => {
   const [activeTab, setActiveTab] = useState<'common' | 'clement' | 'irene'>('common');
+  const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
 
-  // Generate 21 days from 2026-10-12
+  // Generate 28 days (4 full weeks) from 2026-10-12
   const dates: string[] = [];
   const baseDate = new Date(2026, 9, 12);
-  for (let i = 0; i < 21; i++) {
+  for (let i = 0; i < 28; i++) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() + i);
     const yr = d.getFullYear();
@@ -55,12 +59,26 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
     settings
   );
 
-  const displayedBlocks: FreeTimeBlock[] =
+  const rawDisplayedBlocks: FreeTimeBlock[] =
     activeTab === 'common'
       ? commonFree
       : activeTab === 'clement'
       ? clementFree
       : ireneFree;
+
+  // Filter by selected week if active
+  const displayedBlocks: FreeTimeBlock[] = selectedWeekKey
+    ? rawDisplayedBlocks.filter((block) => {
+        const weekIdx = parseInt(selectedWeekKey.replace('S', ''), 10) - 42;
+        if (weekIdx >= 0 && weekIdx < 4) {
+          const startIdx = weekIdx * 7;
+          const endIdx = startIdx + 7;
+          const weekDates = dates.slice(startIdx, endIdx);
+          return weekDates.includes(block.date);
+        }
+        return true;
+      })
+    : rawDisplayedBlocks;
 
   // Group by date
   const groupedByDate = new Map<string, FreeTimeBlock[]>();
@@ -127,8 +145,18 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
         </div>
       </div>
 
+      {/* Recharts Visualization: Weekly Free Time & Rest Periods Identification */}
+      <WeeklyFreeTimeChart
+        pncDuties={pncDuties}
+        ireneOverrides={ireneOverrides}
+        events={events}
+        settings={settings}
+        selectedWeekKey={selectedWeekKey}
+        onSelectWeek={(wk) => setSelectedWeekKey(wk)}
+      />
+
       {/* Highlights summary */}
-      {activeTab === 'common' && (
+      {activeTab === 'common' && !selectedWeekKey && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-emerald-900 dark:text-emerald-200">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-1">
@@ -169,6 +197,25 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
         </div>
       )}
 
+      {/* Active Week Filter Indicator */}
+      {selectedWeekKey && (
+        <div className="flex items-center justify-between p-3 px-4 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs">
+          <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+            <Filter className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span>
+              Filtrage actif sur <strong>{selectedWeekKey.replace('S', 'Semaine ')}</strong> ({groupedByDate.size} jours avec créneaux libres)
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedWeekKey(null)}
+            className="flex items-center gap-1 font-semibold text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white px-2 py-1 rounded bg-white dark:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-700"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Réinitialiser le filtre</span>
+          </button>
+        </div>
+      )}
+
       {/* Detailed list grouped by date */}
       <div className="space-y-4">
         {groupedByDate.size === 0 ? (
@@ -176,6 +223,14 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
             <p className="text-slate-500 dark:text-slate-400 text-sm">
               Aucun créneau libre trouvé sur cette période avec les filtres actuels.
             </p>
+            {selectedWeekKey && (
+              <button
+                onClick={() => setSelectedWeekKey(null)}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg hover:bg-indigo-100"
+              >
+                <span>Afficher toutes les semaines</span>
+              </button>
+            )}
           </div>
         ) : (
           Array.from(groupedByDate.entries()).map(([dateStr, blocks]) => {

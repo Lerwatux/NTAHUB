@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Clock,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import {
   PncDayDuty,
@@ -27,6 +28,7 @@ import {
   checkChildActivityConflict,
 } from '../utils/availability';
 import { getZoneCHoliday } from '../utils/holidaysZoneC';
+import { ExportIcsModal } from './ExportIcsModal';
 
 interface CalendarViewProps {
   pncDuties: Map<string, PncDayDuty>;
@@ -60,6 +62,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [viewType, setViewType] = useState<'month' | 'week'>('month');
   const [showZoneCHolidays, setShowZoneCHolidays] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Month navigation
   const prevPeriod = () => {
@@ -206,6 +209,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               Semaine
             </button>
           </div>
+
+          {/* Bouton Exporter .ics vers Google Calendar / Outlook */}
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs whitespace-nowrap"
+            title="Exporter les événements vers Google Agenda, Outlook ou Apple Calendar (.ics)"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Exporter .ics</span>
+          </button>
         </div>
 
         {/* Filter Tabs (Functional segmented buttons) */}
@@ -307,7 +320,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="font-semibold text-slate-700">Famille & Vacances :</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Famille & Vacances :</span>
           <span className="flex items-center gap-1">
             <Home className="w-3.5 h-3.5 text-blue-600" />
             <span>Télétravail</span>
@@ -320,9 +333,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <span>❓</span>
             <span>Relais requis</span>
           </span>
-          <span className="flex items-center gap-1 font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+          <span className="flex items-center gap-1 font-semibold text-amber-900 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
             <span>🎒</span>
             <span>Vacances Zone C</span>
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 pt-1 lg:pt-0">
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Assigné à :</span>
+          <span className="inline-flex items-center gap-1 font-semibold text-blue-700 dark:text-blue-300">
+            <span className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[8px] font-extrabold flex items-center justify-center shadow-2xs">C</span>
+            <span>Clément</span>
+          </span>
+          <span className="inline-flex items-center gap-1 font-semibold text-pink-700 dark:text-pink-300">
+            <span className="w-3.5 h-3.5 rounded-full bg-pink-600 text-white text-[8px] font-extrabold flex items-center justify-center shadow-2xs">I</span>
+            <span>Irène</span>
+          </span>
+          <span className="inline-flex items-center gap-1 font-semibold text-purple-700 dark:text-purple-300">
+            <span className="flex -space-x-1 shrink-0">
+              <span className="w-3 h-3 rounded-full bg-blue-600 text-white text-[7px] font-bold flex items-center justify-center">C</span>
+              <span className="w-3 h-3 rounded-full bg-pink-600 text-white text-[7px] font-bold flex items-center justify-center">I</span>
+            </span>
+            <span>Les deux</span>
           </span>
         </div>
       </div>
@@ -347,7 +379,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             const pncDuty = pncDuties.get(dateStr);
             const ireneStatus = getIreneStatusOnDate(dateStr, ireneOverrides);
             const dayActivities = getActivitiesForDate(dateStr);
-            const dayEvents = events.filter((e) => e.date === dateStr);
+            const dayEvents = events.filter((e) => {
+              if (e.date !== dateStr) return false;
+              if (filterMode === 'clement') {
+                return (
+                  e.assignedTo === 'Clément' ||
+                  e.assignedTo === 'Les deux' ||
+                  (!e.assignedTo && (e.target === 'Clément' || e.target === 'toute la famille'))
+                );
+              }
+              if (filterMode === 'irene') {
+                return (
+                  e.assignedTo === 'Irène' ||
+                  e.assignedTo === 'Les deux' ||
+                  (!e.assignedTo && (e.target === 'Irène' || e.target === 'toute la famille'))
+                );
+              }
+              return true;
+            });
             const holidayZoneC = showZoneCHolidays ? getZoneCHoliday(dateStr) : null;
 
             // Check if any child activity has conflict
@@ -566,15 +615,66 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   {/* 4. FAMILY EVENTS */}
                   {dayEvents.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-0.5">
-                      {dayEvents.map((e) => (
-                        <span
-                          key={e.id}
-                          className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded text-[10px] font-medium truncate max-w-full"
-                          title={`${e.category} - ${e.target} (${e.startTime}-${e.endTime})`}
-                        >
-                          📌 {e.category}
-                        </span>
-                      ))}
+                      {dayEvents.map((e) => {
+                        const isClementAssigned = e.assignedTo === 'Clément';
+                        const isIreneAssigned = e.assignedTo === 'Irène';
+                        const isBothAssigned = e.assignedTo === 'Les deux';
+
+                        return (
+                          <span
+                            key={e.id}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-full flex items-center gap-1 border transition-colors ${
+                              isClementAssigned
+                                ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200'
+                                : isIreneAssigned
+                                ? 'bg-pink-50 dark:bg-pink-950/70 border-pink-300 dark:border-pink-800 text-pink-900 dark:text-pink-200'
+                                : isBothAssigned
+                                ? 'bg-purple-50 dark:bg-purple-950/70 border-purple-300 dark:border-purple-800 text-purple-900 dark:text-purple-200'
+                                : 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300'
+                            }`}
+                            title={`${e.category} - ${e.target}${e.assignedTo ? ` (Assigné à : ${e.assignedTo})` : ''} (${e.startTime}-${e.endTime})${e.reminderMinutes ? ` · Rappel ${e.reminderMinutes} min avant` : ''}`}
+                          >
+                            {/* Indicateur visuel d'assignation */}
+                            {isClementAssigned && (
+                              <span
+                                className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[8px] font-extrabold flex items-center justify-center shrink-0 shadow-2xs"
+                                title="Tâche assignée à Clément"
+                              >
+                                C
+                              </span>
+                            )}
+                            {isIreneAssigned && (
+                              <span
+                                className="w-3.5 h-3.5 rounded-full bg-pink-600 text-white text-[8px] font-extrabold flex items-center justify-center shrink-0 shadow-2xs"
+                                title="Tâche assignée à Irène"
+                              >
+                                I
+                              </span>
+                            )}
+                            {isBothAssigned && (
+                              <span className="flex -space-x-1 shrink-0" title="Tâche commune (Clément & Irène)">
+                                <span className="w-3 h-3 rounded-full bg-blue-600 text-white text-[7px] font-bold flex items-center justify-center">
+                                  C
+                                </span>
+                                <span className="w-3 h-3 rounded-full bg-pink-600 text-white text-[7px] font-bold flex items-center justify-center">
+                                  I
+                                </span>
+                              </span>
+                            )}
+
+                            <span className="truncate">📌 {e.customTitle || e.category}</span>
+
+                            {e.reminderMinutes !== undefined && e.reminderMinutes > 0 && (
+                              <span
+                                className="text-[9px] text-amber-600 dark:text-amber-400 font-bold shrink-0"
+                                title={`Rappel actif ${e.reminderMinutes} min avant`}
+                              >
+                                ⏰
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -588,6 +688,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Modal d'exportation vers Google Calendar / Outlook (.ics) */}
+      <ExportIcsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        events={events}
+        currentMonthName={monthTitle}
+        currentMonthDates={displayDates}
+      />
     </div>
   );
 };

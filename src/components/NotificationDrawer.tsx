@@ -121,29 +121,44 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                 Aucune alerte en attente pour le moment.
               </div>
             ) : (
-              userNotifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  className={`p-3.5 rounded-xl border text-xs transition-all ${
-                    !notif.isRead
-                      ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 shadow-xs'
-                      : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2">
-                      {!notif.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-indigo-600 mt-1 shrink-0" />
-                      )}
-                      <div>
-                        <h3 className="font-bold text-slate-900 dark:text-white">
-                          {notif.title}
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-                          De <strong>{notif.sender}</strong> · {notif.timestamp}
-                        </p>
+              userNotifications.map((notif) => {
+                const isReminder = notif.title.includes('⏰') || notif.title.toLowerCase().includes('rappel');
+                return (
+                  <div
+                    key={notif.id}
+                    className={`p-3.5 rounded-xl border text-xs transition-all ${
+                      isReminder
+                        ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                        : !notif.isRead
+                        ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 shadow-xs'
+                        : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        {!notif.isRead && (
+                          <span
+                            className={`w-2 h-2 rounded-full mt-1 shrink-0 ${
+                              isReminder ? 'bg-amber-500' : 'bg-indigo-600'
+                            }`}
+                          />
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-bold text-slate-900 dark:text-white">
+                              {notif.title}
+                            </h3>
+                            {isReminder && (
+                              <span className="px-1.5 py-0.2 bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200 text-[10px] rounded-md font-bold">
+                                Rappel automatique
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                            De <strong>{notif.sender}</strong> · {notif.timestamp}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
                     <div className="flex items-center gap-1 shrink-0">
                       {!notif.isRead && (
@@ -184,8 +199,9 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              );
+            })
+          )}
           </div>
 
           {/* Footer */}

@@ -10,9 +10,11 @@ import {
   Settings as SettingsIcon,
   Moon,
   Sun,
+  StickyNote,
 } from 'lucide-react';
 import { UserProfile, AppNotification } from '../types';
 import { FamilyLogo } from './FamilyLogo';
+import { NtahubWordmark } from './NtahubWordmark';
 
 interface TopNavProps {
   currentView: 'calendar' | 'activities' | 'freemoments' | 'pnc';
@@ -21,6 +23,8 @@ interface TopNavProps {
   onSwitchUser: () => void;
   onOpenAddEvent: () => void;
   onOpenNotifications: () => void;
+  onOpenQuickNotes: () => void;
+  quickNotesCount: number;
   onOpenSettings: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
@@ -34,6 +38,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   onSwitchUser,
   onOpenAddEvent,
   onOpenNotifications,
+  onOpenQuickNotes,
+  quickNotesCount,
   onOpenSettings,
   darkMode,
   onToggleDarkMode,
@@ -51,25 +57,16 @@ export const TopNav: React.FC<TopNavProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => onViewChange('calendar')}
-              className="text-left group flex items-center gap-2.5 focus:outline-none"
+              className="text-left group flex items-center gap-2.5 px-2 py-1.5 -mx-2 -my-1.5 rounded-xl focus:outline-none cursor-pointer transform transition-all duration-300 ease-out origin-left hover:scale-[1.05] hover:bg-slate-100/70 dark:hover:bg-slate-800/50 active:scale-[0.98] select-none"
+              title="Retour au calendrier NTAHUB"
             >
-              <FamilyLogo className="h-10 w-auto text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 transition-colors shrink-0" />
+              <FamilyLogo className="h-10 w-auto text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 transform transition-all duration-300 ease-out group-hover:scale-105 shrink-0" />
               <div className="flex flex-col">
-                <span
-                  style={{
-                    fontStyle: 'normal',
-                    fontWeight: 'bold',
-                    color: '#d4d4e4',
-                    fontFamily: 'Courier New',
-                    textAlign: 'left',
-                    fontSize: '23px',
-                  }}
-                  className="tracking-tight"
-                >
-                  NTAHUB
+                <span className="tracking-tight flex items-center">
+                  <NtahubWordmark height={33} className="h-[33px] w-auto transform transition-transform duration-300 ease-out group-hover:scale-[1.03]" />
                 </span>
-                <span className="text-[10px] tracking-wide text-slate-500 dark:text-slate-400 font-medium -mt-1 hidden sm:inline">
-                  Clément & Irène · Orly & Famille
+                <span className="text-[10px] tracking-wide text-slate-500 dark:text-slate-400 font-medium -mt-1 hidden sm:inline transition-colors duration-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                  L'Appli Famille
                 </span>
               </div>
             </button>
@@ -157,6 +154,21 @@ export const TopNav: React.FC<TopNavProps> = ({
               )}
             </button>
 
+            {/* Notes Rapides (Post-it) */}
+            <button
+              onClick={onOpenQuickNotes}
+              className="relative p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors group"
+              title="Notes Rapides & Pense-bêtes (Post-it Clément & Irène)"
+              aria-label="Notes Rapides"
+            >
+              <StickyNote className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              {quickNotesCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white shadow">
+                  {quickNotesCount}
+                </span>
+              )}
+            </button>
+
             {/* Mode Nuit / Dark Mode Toggle Button (juste le symbole) */}
             <button
               onClick={onToggleDarkMode}
@@ -217,6 +229,17 @@ export const TopNav: React.FC<TopNavProps> = ({
             className={`py-1 ${currentView === 'pnc' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}`}
           >
             PNC ICS
+          </button>
+          <button
+            onClick={onOpenQuickNotes}
+            className="py-1 flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"
+          >
+            <span>Notes</span>
+            {quickNotesCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
+                {quickNotesCount}
+              </span>
+            )}
           </button>
         </div>
       </div>

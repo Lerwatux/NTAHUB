@@ -16,6 +16,10 @@ export type EventTarget =
   | 'Ishema' 
   | 'les enfants';
 
+export type ReminderOption = 0 | 15 | 30 | 60; // 0 = aucun, 15, 30 ou 60 minutes avant
+
+export type EventAssignee = 'Clément' | 'Irène' | 'Les deux';
+
 export interface FamilyEvent {
   id: string;
   category: EventCategory;
@@ -24,7 +28,10 @@ export interface FamilyEvent {
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime: string; // HH:mm
+  assignedTo?: EventAssignee; // Responsable / assigné à
   notifySpouse: boolean;
+  reminderMinutes?: ReminderOption; // 15, 30 ou 60 min avant l'événement
+  reminderSent?: boolean;
   createdBy: UserProfile;
   createdAt: string;
   notes?: string;
@@ -113,6 +120,11 @@ export interface AppSettings {
 
   // Appearance
   darkMode: boolean;
+
+  // Rappels programmables (15, 30 ou 60 minutes)
+  flightReminderMinutes: ReminderOption; // Rappel avant briefing vol PNC (0 = désactivé, 15, 30 ou 60 min)
+  activityReminderMinutes: ReminderOption; // Rappel avant activités enfants (0 = désactivé, 15, 30 ou 60 min)
+  eventDefaultReminderMinutes: ReminderOption; // Rappel par défaut pour les événements (0, 15, 30 ou 60 min)
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -126,5 +138,19 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ireneTtWorkStart: '09:00',
   ireneTtWorkEnd: '17:00',
   darkMode: false,
+  flightReminderMinutes: 60,
+  activityReminderMinutes: 30,
+  eventDefaultReminderMinutes: 30,
 };
+
+export type PostItColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'amber';
+
+export interface QuickNote {
+  id: string;
+  author: UserProfile; // 'Clément' | 'Irène'
+  content: string;
+  color: PostItColor;
+  createdAt: string; // ISO date string
+  pinned?: boolean;
+}
 

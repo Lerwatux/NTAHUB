@@ -2,3 +2,28 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Effet zoom interactif global et fluide étendu à tous les boutons */
+button:not(:disabled):not([aria-disabled="true"]) {
+  cursor: pointer;
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+button:not(:disabled):not([aria-disabled="true"]):hover {
+  transform: scale(1.04);
+}
+
+button:not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+  transition-duration: 100ms;
+}
+
+/* Boutons inactifs ou désactivés */
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  transform: none !important;
+}
+

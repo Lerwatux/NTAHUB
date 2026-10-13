@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Settings as SettingsIcon,
@@ -10,14 +10,18 @@ import {
   Check,
   Clock,
   Car,
+  Bell,
+  AlarmClock,
+  Sparkles,
 } from 'lucide-react';
-import { AppSettings, DEFAULT_SETTINGS } from '../types';
+import { AppSettings, DEFAULT_SETTINGS, ReminderOption } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: AppSettings;
   onSaveSettings: (newSettings: AppSettings) => void;
+  onTriggerTestReminder?: (minutes: ReminderOption) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -25,9 +29,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   settings,
   onSaveSettings,
+  onTriggerTestReminder,
 }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>({ ...settings });
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [testSent, setTestSent] = useState(false);
+
+  // Fermeture via la touche Échap
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Verrouillage du scroll arrière-plan
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -46,10 +75,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
               <SettingsIcon className="w-4 h-4" />
@@ -65,7 +106,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fermer les paramètres"
+            title="Fermer (Échap)"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -451,6 +495,165 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* 4. SYSTÈME DE RAPPELS CONFIGURABLES (15, 30, 60 MIN) */}
+          <section className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/60 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <AlarmClock className="w-4 h-4" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Système de Rappels Configurables
+                </h3>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                15 · 30 · 60 min
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Déclenche des notifications internes automatisées pour vous prévenir avant le départ d'une activité, d'un événement ou d'un vol.
+            </p>
+
+            {/* Rappel Vols PNC */}
+            <div className="p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Plane className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Rappel avant vol PNC (Briefing Orly) :
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  {localSettings.flightReminderMinutes === 0
+                    ? 'Désactivé'
+                    : `${localSettings.flightReminderMinutes} min avant`}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([0, 15, 30, 60] as ReminderOption[]).map((mins) => (
+                  <button
+                    key={`flight-${mins}`}
+                    type="button"
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, flightReminderMinutes: mins })
+                    }
+                    className={`py-1 text-xs rounded-lg border transition-all ${
+                      localSettings.flightReminderMinutes === mins
+                        ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {mins === 0 ? 'Off' : `${mins} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rappel Activités Enfants */}
+            <div className="p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-pink-500" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Rappel activités enfants (Imanzi & Ishema) :
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-pink-600 dark:text-pink-400">
+                  {localSettings.activityReminderMinutes === 0
+                    ? 'Désactivé'
+                    : `${localSettings.activityReminderMinutes} min avant`}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([0, 15, 30, 60] as ReminderOption[]).map((mins) => (
+                  <button
+                    key={`act-${mins}`}
+                    type="button"
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, activityReminderMinutes: mins })
+                    }
+                    className={`py-1 text-xs rounded-lg border transition-all ${
+                      localSettings.activityReminderMinutes === mins
+                        ? 'bg-pink-600 text-white border-pink-600 font-bold shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {mins === 0 ? 'Off' : `${mins} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rappel par défaut Événements Familiaux */}
+            <div className="p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Délai de rappel par défaut pour nouveaux événements :
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                  {localSettings.eventDefaultReminderMinutes === 0
+                    ? 'Désactivé'
+                    : `${localSettings.eventDefaultReminderMinutes} min avant`}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([0, 15, 30, 60] as ReminderOption[]).map((mins) => (
+                  <button
+                    key={`evt-${mins}`}
+                    type="button"
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, eventDefaultReminderMinutes: mins })
+                    }
+                    className={`py-1 text-xs rounded-lg border transition-all ${
+                      localSettings.eventDefaultReminderMinutes === mins
+                        ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {mins === 0 ? 'Off' : `${mins} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bouton Test de Rappel Immédiat */}
+            {onTriggerTestReminder && (
+              <div className="pt-2 flex items-center justify-between bg-amber-50/70 dark:bg-amber-950/30 p-2.5 rounded-lg border border-amber-200/70 dark:border-amber-900/50">
+                <div>
+                  <span className="text-xs font-semibold text-amber-900 dark:text-amber-200 block">
+                    Tester une notification de rappel
+                  </span>
+                  <span className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                    Envoie immédiatement une alerte interne d'exemple dans votre cloche
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTriggerTestReminder(localSettings.eventDefaultReminderMinutes || 30);
+                    setTestSent(true);
+                    setTimeout(() => setTestSent(false), 2500);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                >
+                  {testSent ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Envoyé !</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Tester (30 min)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </section>
         </form>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   X,
   Plane,
@@ -59,16 +59,51 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
   allEvents,
   settings,
 }) => {
+  // Fermeture via la touche Échap
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Verrouillage du scroll arrière-plan
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen || !date) return null;
 
   const dateFormatted = formatFrenchDateLong(date);
   const holidayZoneC = getZoneCHoliday(date);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shrink-0">
           <div>
             <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               Détails de la journée
@@ -78,7 +113,10 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fermer la fenêtre"
+            title="Fermer (Échap)"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -509,13 +547,45 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                     className="flex items-start justify-between p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-xs"
                   >
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 dark:text-white capitalize">
                           {evt.category}
                         </span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">
                           Pour : <strong>{evt.target}</strong>
                         </span>
+
+                        {/* Badge Assigné à / Responsable */}
+                        {evt.assignedTo && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 border ${
+                              evt.assignedTo === 'Clément'
+                                ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
+                                : evt.assignedTo === 'Irène'
+                                ? 'bg-pink-50 dark:bg-pink-950/70 border-pink-200 dark:border-pink-800 text-pink-800 dark:text-pink-300'
+                                : 'bg-purple-50 dark:bg-purple-950/70 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-3.5 h-3.5 rounded-full text-white text-[8px] font-extrabold flex items-center justify-center shrink-0 ${
+                                evt.assignedTo === 'Clément'
+                                  ? 'bg-blue-600'
+                                  : evt.assignedTo === 'Irène'
+                                  ? 'bg-pink-600'
+                                  : 'bg-purple-600'
+                              }`}
+                            >
+                              {evt.assignedTo === 'Clément' ? 'C' : evt.assignedTo === 'Irène' ? 'I' : '2'}
+                            </span>
+                            <span>Assigné à : <strong>{evt.assignedTo}</strong></span>
+                          </span>
+                        )}
+
+                        {evt.reminderMinutes !== undefined && evt.reminderMinutes > 0 && (
+                          <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-[10px] rounded font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center gap-0.5">
+                            ⏰ {evt.reminderMinutes} min
+                          </span>
+                        )}
                         {evt.notifySpouse && (
                           <span className="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[10px] rounded font-semibold border border-amber-200 dark:border-amber-800">
                             Alerte conjoint

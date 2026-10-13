@@ -59,10 +59,13 @@ export function getClementBusyIntervals(
     // 'off' and 'blanc' mean no scheduled duty flight blocking him
   }
 
-  // Personal events dedicated to Clément
-  const clementEvents = events.filter(
-    (e) => e.date === date && (e.target === 'Clément' || e.target === 'toute la famille')
-  );
+  // Personal events dedicated to or assigned to Clément
+  const clementEvents = events.filter((e) => {
+    if (e.date !== date) return false;
+    if (e.assignedTo === 'Clément' || e.assignedTo === 'Les deux') return true;
+    if (e.assignedTo === 'Irène') return false;
+    return e.target === 'Clément' || e.target === 'toute la famille';
+  });
   for (const e of clementEvents) {
     intervals.push({
       start: timeToMinutes(e.startTime),
@@ -120,10 +123,13 @@ export function getIreneBusyIntervals(
   }
   // 'cp', 'rtt', 'weekend' have no work busy intervals!
 
-  // Personal events dedicated to Irène
-  const ireneEvents = events.filter(
-    (e) => e.date === date && (e.target === 'Irène' || e.target === 'toute la famille')
-  );
+  // Personal events dedicated to or assigned to Irène
+  const ireneEvents = events.filter((e) => {
+    if (e.date !== date) return false;
+    if (e.assignedTo === 'Irène' || e.assignedTo === 'Les deux') return true;
+    if (e.assignedTo === 'Clément') return false;
+    return e.target === 'Irène' || e.target === 'toute la famille';
+  });
   for (const e of ireneEvents) {
     intervals.push({
       start: timeToMinutes(e.startTime),

@@ -7,6 +7,7 @@ import {
   UserProfile,
   AppSettings,
   DEFAULT_SETTINGS,
+  QuickNote,
 } from '../types';
 import { parseIcsString, processPncEvents, generateSamplePncIcs } from './icsParser';
 
@@ -187,7 +188,16 @@ export function getInitialFamilyEvents(): FamilyEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_EVENTS);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed: FamilyEvent[] = JSON.parse(raw);
+      // Migrate initial events if needed
+      return parsed.map((e) => {
+        if (!e.assignedTo) {
+          if (e.id === 'evt-1') return { ...e, assignedTo: 'Irène' };
+          if (e.id === 'evt-2') return { ...e, assignedTo: 'Les deux' };
+          if (e.id === 'evt-3') return { ...e, assignedTo: 'Clément' };
+        }
+        return e;
+      });
     }
   } catch (err) {
     console.error('Failed to parse family events', err);
@@ -202,7 +212,9 @@ export function getInitialFamilyEvents(): FamilyEvent[] {
       date: '2026-10-14',
       startTime: '17:30',
       endTime: '18:15',
+      assignedTo: 'Irène',
       notifySpouse: true,
+      reminderMinutes: 30,
       createdBy: 'Irène',
       createdAt: '2026-10-10T10:00:00Z',
       notes: 'Carnet de santé dans le sac bleu.',
@@ -215,7 +227,9 @@ export function getInitialFamilyEvents(): FamilyEvent[] {
       date: '2026-10-17',
       startTime: '19:30',
       endTime: '23:00',
+      assignedTo: 'Les deux',
       notifySpouse: true,
+      reminderMinutes: 60,
       createdBy: 'Clément',
       createdAt: '2026-10-11T12:00:00Z',
       notes: 'Clément sera rentré le matin à 10h00.',
@@ -228,7 +242,9 @@ export function getInitialFamilyEvents(): FamilyEvent[] {
       date: '2026-10-18',
       startTime: '10:30',
       endTime: '12:00',
+      assignedTo: 'Clément',
       notifySpouse: false,
+      reminderMinutes: 15,
       createdBy: 'Clément',
       createdAt: '2026-10-11T13:00:00Z',
       notes: 'Bio c’bon + marché frais.',
@@ -299,5 +315,56 @@ export function saveNotifications(notifs: AppNotification[]): void {
     localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifs));
   } catch (err) {
     console.error('Failed to save notifications', err);
+  }
+}
+
+const STORAGE_KEY_QUICK_NOTES = 'ntahub_quick_notes_v1';
+
+export function getInitialQuickNotes(): QuickNote[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_QUICK_NOTES);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Failed to parse quick notes', err);
+  }
+
+  const initialNotes: QuickNote[] = [
+    {
+      id: 'note-1',
+      author: 'Clément',
+      content: 'Sac de judo d’Imanzi prêt dans le coffre pour mercredi ! Décollage ORY à 07h10 demain matin ✈️',
+      color: 'yellow',
+      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      pinned: true,
+    },
+    {
+      id: 'note-2',
+      author: 'Irène',
+      content: 'Courses faites ! Les compotes et goûters sont dans le placard du haut. Je serai en télétravail jeudi 💻',
+      color: 'pink',
+      createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+      pinned: true,
+    },
+    {
+      id: 'note-3',
+      author: 'Clément',
+      content: 'Pense à signer le carnet de liaison d’Ishema avant vendredi svp ❤️',
+      color: 'blue',
+      createdAt: new Date(Date.now() - 3600000 * 18).toISOString(),
+      pinned: false,
+    },
+  ];
+
+  saveQuickNotes(initialNotes);
+  return initialNotes;
+}
+
+export function saveQuickNotes(notes: QuickNote[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_QUICK_NOTES, JSON.stringify(notes));
+  } catch (err) {
+    console.error('Failed to save quick notes', err);
   }
 }
