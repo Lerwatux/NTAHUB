@@ -152,5 +152,7 @@ export interface QuickNote {
   color: PostItColor;
   createdAt: string; // ISO date string
   pinned?: boolean;
+  likes?: UserProfile[]; // 'Clément' and/or 'Irène' who liked the post-it
 }
+
 

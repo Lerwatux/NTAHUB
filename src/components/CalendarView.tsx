@@ -40,6 +40,7 @@ interface CalendarViewProps {
   onSelectDay: (date: string) => void;
   onOpenAddEvent: (date?: string) => void;
   onOpenIcsImport: () => void;
+  onNavigateToWeekView?: () => void;
 }
 
 type FilterMode = 'all' | 'clement' | 'irene' | 'children' | 'common_free';
@@ -56,6 +57,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectDay,
   onOpenAddEvent,
   onOpenIcsImport,
+  onNavigateToWeekView,
 }) => {
   // Current view date (default October 2026 as per user context)
   const [currentDate, setCurrentDate] = useState(() => new Date(2026, 9, 1)); // Oct 2026
@@ -199,7 +201,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               Mois
             </button>
             <button
-              onClick={() => setViewType('week')}
+              onClick={() => {
+                if (onNavigateToWeekView) {
+                  onNavigateToWeekView();
+                } else {
+                  setViewType('week');
+                }
+              }}
               className={`px-3 py-1 rounded-md transition-all ${
                 viewType === 'week'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold'

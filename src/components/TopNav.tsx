@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Calendar as CalendarIcon,
+  CalendarDays,
   Users,
   Clock,
   Plane,
@@ -17,8 +18,8 @@ import { FamilyLogo } from './FamilyLogo';
 import { NtahubWordmark } from './NtahubWordmark';
 
 interface TopNavProps {
-  currentView: 'calendar' | 'activities' | 'freemoments' | 'pnc';
-  onViewChange: (view: 'calendar' | 'activities' | 'freemoments' | 'pnc') => void;
+  currentView: 'calendar' | 'week' | 'activities' | 'freemoments' | 'pnc';
+  onViewChange: (view: 'calendar' | 'week' | 'activities' | 'freemoments' | 'pnc') => void;
   currentUser: UserProfile;
   onSwitchUser: () => void;
   onOpenAddEvent: () => void;
@@ -84,6 +85,18 @@ export const TopNav: React.FC<TopNavProps> = ({
             >
               <CalendarIcon className="w-4 h-4" />
               <span>Calendrier</span>
+            </button>
+
+            <button
+              onClick={() => onViewChange('week')}
+              className={`flex items-center gap-2 py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                currentView === 'week'
+                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span>Semaine</span>
             </button>
 
             <button
@@ -210,7 +223,13 @@ export const TopNav: React.FC<TopNavProps> = ({
             onClick={() => onViewChange('calendar')}
             className={`py-1 ${currentView === 'calendar' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}`}
           >
-            Calendrier
+            Mois
+          </button>
+          <button
+            onClick={() => onViewChange('week')}
+            className={`py-1 ${currentView === 'week' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}`}
+          >
+            Semaine
           </button>
           <button
             onClick={() => onViewChange('activities')}

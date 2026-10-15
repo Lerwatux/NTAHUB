@@ -324,7 +324,11 @@ export function getInitialQuickNotes(): QuickNote[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_QUICK_NOTES);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed: QuickNote[] = JSON.parse(raw);
+      return parsed.map((n) => ({
+        ...n,
+        likes: Array.isArray(n.likes) ? n.likes : [],
+      }));
     }
   } catch (err) {
     console.error('Failed to parse quick notes', err);
@@ -338,6 +342,7 @@ export function getInitialQuickNotes(): QuickNote[] {
       color: 'yellow',
       createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
       pinned: true,
+      likes: ['Irène'],
     },
     {
       id: 'note-2',
@@ -346,6 +351,7 @@ export function getInitialQuickNotes(): QuickNote[] {
       color: 'pink',
       createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
       pinned: true,
+      likes: ['Clément'],
     },
     {
       id: 'note-3',
@@ -354,6 +360,7 @@ export function getInitialQuickNotes(): QuickNote[] {
       color: 'blue',
       createdAt: new Date(Date.now() - 3600000 * 18).toISOString(),
       pinned: false,
+      likes: [],
     },
   ];
 

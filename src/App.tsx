@@ -37,6 +37,7 @@ import {
 import { recalculatePncDuties } from './utils/icsParser';
 import { TopNav } from './components/TopNav';
 import { CalendarView } from './components/CalendarView';
+import { WeekView } from './components/WeekView';
 import { DayDetailsModal } from './components/DayDetailsModal';
 import { AddEventModal } from './components/AddEventModal';
 import { ChildActivitiesManager } from './components/ChildActivitiesManager';
@@ -57,7 +58,7 @@ import {
 export default function App() {
   // State initialization
   const [currentUser, setCurrentUser] = useState<UserProfile>(getInitialActiveUser);
-  const [currentView, setCurrentView] = useState<'calendar' | 'activities' | 'freemoments' | 'pnc'>('calendar');
+  const [currentView, setCurrentView] = useState<'calendar' | 'week' | 'activities' | 'freemoments' | 'pnc'>('calendar');
 
   const [settings, setSettings] = useState<AppSettings>(getInitialSettings);
   const [pncDuties, setPncDuties] = useState<Map<string, PncDayDuty>>(getInitialPncDuties);
@@ -458,6 +459,51 @@ export default function App() {
     saveQuickNotes(updated);
   };
 
+  const handleToggleLikeQuickNote = (id: string, userToToggle?: UserProfile) => {
+    const likingUser = userToToggle || currentUser;
+    let targetAuthor: UserProfile | null = null;
+    let noteContent = '';
+    let isLikedNow = false;
+
+    const updated = quickNotes.map((n) => {
+      if (n.id === id) {
+        const currentLikes = n.likes || [];
+        const alreadyLiked = currentLikes.includes(likingUser);
+        isLikedNow = !alreadyLiked;
+        const newLikes = alreadyLiked
+          ? currentLikes.filter((u) => u !== likingUser)
+          : [...currentLikes, likingUser];
+        targetAuthor = n.author;
+        noteContent = n.content;
+        return { ...n, likes: newLikes };
+      }
+      return n;
+    });
+
+    setQuickNotes(updated);
+    saveQuickNotes(updated);
+
+    // If a user liked (not unliked) a post-it written by the other person, send an in-app alert
+    if (isLikedNow && targetAuthor && targetAuthor !== likingUser) {
+      const snippet = noteContent.length > 50 ? noteContent.slice(0, 50) + '…' : noteContent;
+      const newNotif: AppNotification = {
+        id: `notif-like-${Date.now()}`,
+        sender: likingUser,
+        recipient: targetAuthor,
+        title: `❤️ ${likingUser} a aimé votre post-it`,
+        message: `${likingUser} a réagi avec un cœur à votre mot : « ${snippet} »`,
+        timestamp: new Intl.DateTimeFormat('fr-FR', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+        }).format(new Date()),
+        isRead: false,
+      };
+      const updatedNotifs = [newNotif, ...notifications];
+      setNotifications(updatedNotifs);
+      saveNotifications(updatedNotifs);
+    }
+  };
+
   const handleClearAllQuickNotes = () => {
     setQuickNotes([]);
     saveQuickNotes([]);
@@ -512,6 +558,23 @@ export default function App() {
               setIsAddEventOpen(true);
             }}
             onOpenIcsImport={() => setCurrentView('pnc')}
+            onNavigateToWeekView={() => setCurrentView('week')}
+          />
+        )}
+
+        {currentView === 'week' && (
+          <WeekView
+            pncDuties={pncDuties}
+            ireneOverrides={ireneOverrides}
+            childActivities={childActivities}
+            events={events}
+            currentUser={currentUser}
+            settings={settings}
+            onSelectDay={(d) => setSelectedDate(d)}
+            onOpenAddEvent={(d) => {
+              setAddEventInitialDate(d);
+              setIsAddEventOpen(true);
+            }}
           />
         )}
 
@@ -630,6 +693,7 @@ export default function App() {
         onAddNote={handleAddQuickNote}
         onDeleteNote={handleDeleteQuickNote}
         onTogglePin={handleTogglePinQuickNote}
+        onToggleLike={handleToggleLikeQuickNote}
         onClearAllNotes={handleClearAllQuickNotes}
       />
     </div>

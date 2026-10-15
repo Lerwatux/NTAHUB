@@ -9,6 +9,7 @@ import {
   Sparkles,
   Filter,
   CheckCircle2,
+  Heart,
 } from 'lucide-react';
 import { QuickNote, PostItColor, UserProfile } from '../types';
 
@@ -20,6 +21,7 @@ interface QuickNotesDrawerProps {
   onAddNote: (note: Omit<QuickNote, 'id' | 'createdAt'>) => void;
   onDeleteNote: (id: string) => void;
   onTogglePin: (id: string) => void;
+  onToggleLike?: (id: string, userToToggle?: UserProfile) => void;
   onClearAllNotes?: () => void;
 }
 
@@ -152,13 +154,14 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   onAddNote,
   onDeleteNote,
   onTogglePin,
+  onToggleLike,
   onClearAllNotes,
 }) => {
   const [content, setContent] = useState('');
   const [selectedAuthor, setSelectedAuthor] = useState<UserProfile>(currentUser);
   const [selectedColor, setSelectedColor] = useState<PostItColor>('yellow');
   const [isPinned, setIsPinned] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'mine' | 'pinned'>('all');
+  const [filter, setFilter] = useState<'all' | 'mine' | 'pinned' | 'liked'>('all');
   const [isFormExpanded, setIsFormExpanded] = useState(true);
 
   if (!isOpen) return null;
@@ -172,6 +175,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
       content: content.trim(),
       color: selectedColor,
       pinned: isPinned,
+      likes: [],
     });
 
     setContent('');
@@ -183,6 +187,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     .filter((note) => {
       if (filter === 'mine') return note.author === currentUser;
       if (filter === 'pinned') return note.pinned;
+      if (filter === 'liked') return (note.likes?.length || 0) > 0;
       return true;
     })
     .sort((a, b) => {
@@ -194,6 +199,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     });
 
   const pinnedCount = notes.filter((n) => n.pinned).length;
+  const likedCount = notes.filter((n) => (n.likes?.length || 0) > 0).length;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
@@ -359,6 +365,17 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                 <Pin className="w-3 h-3" />
                 <span>Épinglés ({pinnedCount})</span>
               </button>
+              <button
+                onClick={() => setFilter('liked')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors ${
+                  filter === 'liked'
+                    ? 'bg-rose-500 text-white font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Heart className={`w-3 h-3 ${filter === 'liked' ? 'fill-current' : 'text-rose-500'}`} />
+                <span>Aimés ({likedCount})</span>
+              </button>
             </div>
 
             {notes.length > 0 && onClearAllNotes && (
@@ -380,20 +397,32 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
             {filteredNotes.length === 0 ? (
               <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-white/50 dark:bg-slate-900/40">
                 <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-500 mb-3">
-                  <StickyNote className="w-6 h-6" />
+                  {filter === 'liked' ? (
+                    <Heart className="w-6 h-6 fill-rose-500 text-rose-500" />
+                  ) : (
+                    <StickyNote className="w-6 h-6" />
+                  )}
                 </div>
                 <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                  Aucune note rapide ici
+                  {filter === 'liked'
+                    ? 'Aucun post-it aimé pour le moment'
+                    : 'Aucune note rapide ici'}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mt-1">
-                  Écrivez ci-dessus un rappel rapide pour Clément ou Irène. Il apparaîtra instantanément comme un Post-it !
+                  {filter === 'liked'
+                    ? 'Déposez un ❤️ sur un post-it pour l’afficher dans vos favoris !'
+                    : 'Écrivez ci-dessus un rappel rapide pour Clément ou Irène. Il apparaîtra instantanément comme un Post-it !'}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3.5">
-                {filteredNotes.map((note, index) => {
+                {filteredNotes.map((note) => {
                   const cfg = COLOR_CONFIG[note.color] || COLOR_CONFIG.yellow;
-                  const isAuthorCurrent = note.author === currentUser;
+                  const isAuthoredByClement = note.author === 'Clément';
+                  // Si rédigé par Clément -> le bouton est "Cœur Irène"
+                  // Si rédigé par Irène -> le bouton est "Cœur Clément"
+                  const heartOwner: UserProfile = isAuthoredByClement ? 'Irène' : 'Clément';
+                  const isHeartGiven = (note.likes || []).includes(heartOwner);
 
                   return (
                     <div
@@ -427,14 +456,14 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                           {/* Badge Auteur */}
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                              note.author === 'Clément'
+                              isAuthoredByClement
                                 ? 'bg-blue-200/80 dark:bg-blue-900/60 text-blue-900 dark:text-blue-100'
                                 : 'bg-rose-200/80 dark:bg-rose-900/60 text-rose-900 dark:text-rose-100'
                             }`}
                           >
                             <span>{note.author}</span>
                             <span className="text-[10px]">
-                              {note.author === 'Clément' ? '✈️' : '💼'}
+                              {isAuthoredByClement ? '✈️' : '💼'}
                             </span>
                           </span>
                         </div>
@@ -460,6 +489,47 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                       <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap select-text">
                         {note.content}
                       </p>
+
+                      {/* Pied du Post-It : Bouton Cœur pour le conjoint */}
+                      <div className="mt-3 pt-2.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                        {/* Bouton avec symbole cœur et prénom du conjoint */}
+                        <button
+                          type="button"
+                          onClick={() => onToggleLike?.(note.id, heartOwner)}
+                          title={
+                            isHeartGiven
+                              ? `Retirer le like de ${heartOwner}`
+                              : `Coup de cœur pour ${heartOwner}`
+                          }
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                            isHeartGiven
+                              ? heartOwner === 'Irène'
+                                ? 'bg-rose-500 hover:bg-rose-600 text-white font-bold border border-rose-600 shadow-xs'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white font-bold border border-blue-700 shadow-xs'
+                              : heartOwner === 'Irène'
+                              ? 'bg-white/70 dark:bg-slate-900/60 text-rose-700 dark:text-rose-300 font-medium border border-rose-300/80 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:border-rose-400'
+                              : 'bg-white/70 dark:bg-slate-900/60 text-blue-700 dark:text-blue-300 font-medium border border-blue-300/80 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-400'
+                          }`}
+                        >
+                          <Heart
+                            className={`w-3.5 h-3.5 transition-transform ${
+                              isHeartGiven
+                                ? 'fill-current scale-110'
+                                : heartOwner === 'Irène'
+                                ? 'text-rose-500'
+                                : 'text-blue-500'
+                            }`}
+                          />
+                          <span>{heartOwner}</span>
+                        </button>
+
+                        {/* Statut si aimé */}
+                        {isHeartGiven && (
+                          <div className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-100/70 dark:bg-rose-950/50 px-2 py-0.5 rounded-md flex items-center gap-1 animate-fadeIn">
+                            <span>❤️ Mot validé par {heartOwner}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
