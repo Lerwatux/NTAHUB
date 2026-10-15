@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Règles de sécurité NTAHUB : seuls les deux comptes de la famille
+// peuvent lire et modifier le planning. Tout le reste est refusé.
+//
+// 👉 Remplace les deux adresses ci-dessous par vos vraies adresses e-mail
+//    (en minuscules), puis colle ce fichier dans
+//    Console Firebase → Firestore Database → Règles → Publier.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isFamilyMember() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in [
+          'adresse-de-clement@exemple.com',
+          'adresse-d-irene@exemple.com'
+        ];
+    }
+
+    match /families/ntahub/data/{document} {
+      allow read, write: if isFamilyMember();
+    }
+  }
+}

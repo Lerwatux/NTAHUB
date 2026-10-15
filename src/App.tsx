@@ -34,6 +34,8 @@ import {
   getInitialQuickNotes,
   saveQuickNotes,
 } from './utils/storage';
+import { subscribeToSharedData } from './utils/cloudSync';
+import type { CloudAccount } from './components/AuthGate';
 import { recalculatePncDuties } from './utils/icsParser';
 import { TopNav } from './components/TopNav';
 import { CalendarView } from './components/CalendarView';
@@ -55,7 +57,12 @@ import {
   timeToMinutes,
 } from './utils/timezone';
 
-export default function App() {
+interface AppProps {
+  // Compte connecté quand la synchronisation Firebase est active (null = mode local).
+  account?: CloudAccount | null;
+}
+
+export default function App({ account = null }: AppProps) {
   // State initialization
   const [currentUser, setCurrentUser] = useState<UserProfile>(getInitialActiveUser);
   const [currentView, setCurrentView] = useState<'calendar' | 'week' | 'activities' | 'freemoments' | 'pnc'>('calendar');
@@ -75,6 +82,20 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Reçoit en temps réel les modifications faites sur l'autre téléphone
+  useEffect(() => {
+    if (!account) return;
+    return subscribeToSharedData({
+      onSettings: setSettings,
+      onPncDuties: setPncDuties,
+      onIreneOverrides: setIreneOverrides,
+      onChildActivities: setChildActivities,
+      onFamilyEvents: setEvents,
+      onNotifications: setNotifications,
+      onQuickNotes: setQuickNotes,
+    });
+  }, [account?.email]);
 
   // Synchronize Dark Mode on HTML document root
   useEffect(() => {
@@ -667,6 +688,15 @@ export default function App() {
         onSaveSettings={handleSaveSettings}
         onTriggerTestReminder={handleTriggerTestReminder}
       />
+
+      {account && (
+        <footer className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-20 text-[11px] text-slate-400 dark:text-slate-500">
+          Synchronisé avec {account.email} ·{' '}
+          <button onClick={account.signOut} className="underline hover:text-slate-600 dark:hover:text-slate-300">
+            Se déconnecter
+          </button>
+        </footer>
+      )}
 
       {/* Floating Quick Notes shortcut button */}
       <button

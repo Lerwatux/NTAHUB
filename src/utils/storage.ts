@@ -10,6 +10,7 @@ import {
   QuickNote,
 } from '../types';
 import { parseIcsString, processPncEvents, generateSamplePncIcs } from './icsParser';
+import { pushSharedData } from './cloudSync';
 
 const STORAGE_KEY_PNC = 'ntahub_pnc_duties_v1';
 const STORAGE_KEY_IRENE = 'ntahub_irene_overrides_v1';
@@ -18,12 +19,89 @@ const STORAGE_KEY_EVENTS = 'ntahub_family_events_v1';
 const STORAGE_KEY_NOTIFS = 'ntahub_notifications_v1';
 const STORAGE_KEY_USER = 'ntahub_active_user_v1';
 const STORAGE_KEY_SETTINGS = 'ntahub_settings_v1';
+const STORAGE_KEY_QUICK_NOTES = 'ntahub_quick_notes_v1';
+
+/**
+ * Données partagées entre les deux téléphones (synchronisées via Firebase).
+ * Le profil actif (Clément / Irène) reste propre à chaque appareil.
+ */
+export type SharedDataKey =
+  | 'settings'
+  | 'pncDuties'
+  | 'ireneOverrides'
+  | 'childActivities'
+  | 'familyEvents'
+  | 'notifications'
+  | 'quickNotes';
+
+export const SHARED_STORAGE_KEYS: Record<SharedDataKey, string> = {
+  settings: STORAGE_KEY_SETTINGS,
+  pncDuties: STORAGE_KEY_PNC,
+  ireneOverrides: STORAGE_KEY_IRENE,
+  childActivities: STORAGE_KEY_ACTIVITIES,
+  familyEvents: STORAGE_KEY_EVENTS,
+  notifications: STORAGE_KEY_NOTIFS,
+  quickNotes: STORAGE_KEY_QUICK_NOTES,
+};
+
+// Enregistre dans le localStorage (cache de l'appareil) puis envoie au cloud si la synchro est active.
+function persist(key: SharedDataKey, value: unknown): void {
+  const json = JSON.stringify(value);
+  localStorage.setItem(SHARED_STORAGE_KEYS[key], json);
+  pushSharedData(key, json);
+}
+
+export function parseSettings(raw: string): AppSettings {
+  return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+}
+
+export function parseMap<T>(raw: string): Map<string, T> {
+  return new Map(Object.entries(JSON.parse(raw)));
+}
+
+export function parseQuickNotes(raw: string): QuickNote[] {
+  const parsed: QuickNote[] = JSON.parse(raw);
+  return parsed.map((n) => ({
+    ...n,
+    likes: Array.isArray(n.likes) ? n.likes : [],
+  }));
+}
+
+// Identifiants des données d'exemple : ignorés lors de la fusion des données locales avec le cloud.
+export const SAMPLE_ITEM_IDS = new Set([
+  'evt-1',
+  'evt-2',
+  'evt-3',
+  'notif-1',
+  'notif-2',
+  'notif-3',
+  'note-1',
+  'note-2',
+  'note-3',
+  'act-imanzi-judo',
+  'act-imanzi-musique',
+  'act-ishema-danse',
+  'act-ishema-natation',
+]);
+
+export function getSamplePncDuties(): Map<string, PncDayDuty> {
+  return processPncEvents(parseIcsString(generateSamplePncIcs()));
+}
+
+export function getSampleIreneOverrides(): Map<string, IreneDayOverride> {
+  const initial = new Map<string, IreneDayOverride>();
+  initial.set('2026-10-13', { date: '2026-10-13', status: 'tt', notes: 'Télétravail à la maison' });
+  initial.set('2026-10-15', { date: '2026-10-15', status: 'tt', notes: 'Télétravail réunion visio' });
+  initial.set('2026-10-19', { date: '2026-10-19', status: 'rtt', notes: 'Journée RTT posée' });
+  initial.set('2026-10-27', { date: '2026-10-27', status: 'cp', notes: 'Congé d’automne' });
+  return initial;
+}
 
 export function getInitialSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
     if (raw) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      return parseSettings(raw);
     }
   } catch (err) {
     console.error('Failed to parse settings', err);
@@ -33,7 +111,7 @@ export function getInitialSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   try {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    persist('settings', settings);
   } catch (err) {
     console.error('Failed to save settings', err);
   }
@@ -61,25 +139,21 @@ export function getInitialPncDuties(): Map<string, PncDayDuty> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PNC);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return new Map(Object.entries(parsed));
+      return parseMap<PncDayDuty>(raw);
     }
   } catch (err) {
     console.error('Failed to parse stored PNC duties', err);
   }
 
   // Fallback to sample roster
-  const sampleIcs = generateSamplePncIcs();
-  const rawEvents = parseIcsString(sampleIcs);
-  const duties = processPncEvents(rawEvents);
+  const duties = getSamplePncDuties();
   savePncDuties(duties);
   return duties;
 }
 
 export function savePncDuties(duties: Map<string, PncDayDuty>): void {
   try {
-    const obj = Object.fromEntries(duties.entries());
-    localStorage.setItem(STORAGE_KEY_PNC, JSON.stringify(obj));
+    persist('pncDuties', Object.fromEntries(duties.entries()));
   } catch (err) {
     console.error('Failed to save PNC duties', err);
   }
@@ -89,27 +163,21 @@ export function getInitialIreneOverrides(): Map<string, IreneDayOverride> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_IRENE);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return new Map(Object.entries(parsed));
+      return parseMap<IreneDayOverride>(raw);
     }
   } catch (err) {
     console.error('Failed to parse Irene overrides', err);
   }
 
   // Preload a few sample days for Irène (e.g. TT on Tuesday, CP on Friday)
-  const initial = new Map<string, IreneDayOverride>();
-  initial.set('2026-10-13', { date: '2026-10-13', status: 'tt', notes: 'Télétravail à la maison' });
-  initial.set('2026-10-15', { date: '2026-10-15', status: 'tt', notes: 'Télétravail réunion visio' });
-  initial.set('2026-10-19', { date: '2026-10-19', status: 'rtt', notes: 'Journée RTT posée' });
-  initial.set('2026-10-27', { date: '2026-10-27', status: 'cp', notes: 'Congé d’automne' });
+  const initial = getSampleIreneOverrides();
   saveIreneOverrides(initial);
   return initial;
 }
 
 export function saveIreneOverrides(overrides: Map<string, IreneDayOverride>): void {
   try {
-    const obj = Object.fromEntries(overrides.entries());
-    localStorage.setItem(STORAGE_KEY_IRENE, JSON.stringify(obj));
+    persist('ireneOverrides', Object.fromEntries(overrides.entries()));
   } catch (err) {
     console.error('Failed to save Irene overrides', err);
   }
@@ -178,7 +246,7 @@ export function getInitialChildActivities(): ChildActivity[] {
 
 export function saveChildActivities(activities: ChildActivity[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_ACTIVITIES, JSON.stringify(activities));
+    persist('childActivities', activities);
   } catch (err) {
     console.error('Failed to save child activities', err);
   }
@@ -257,7 +325,7 @@ export function getInitialFamilyEvents(): FamilyEvent[] {
 
 export function saveFamilyEvents(events: FamilyEvent[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events));
+    persist('familyEvents', events);
   } catch (err) {
     console.error('Failed to save family events', err);
   }
@@ -312,23 +380,17 @@ export function getInitialNotifications(): AppNotification[] {
 
 export function saveNotifications(notifs: AppNotification[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifs));
+    persist('notifications', notifs);
   } catch (err) {
     console.error('Failed to save notifications', err);
   }
 }
 
-const STORAGE_KEY_QUICK_NOTES = 'ntahub_quick_notes_v1';
-
 export function getInitialQuickNotes(): QuickNote[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_QUICK_NOTES);
     if (raw) {
-      const parsed: QuickNote[] = JSON.parse(raw);
-      return parsed.map((n) => ({
-        ...n,
-        likes: Array.isArray(n.likes) ? n.likes : [],
-      }));
+      return parseQuickNotes(raw);
     }
   } catch (err) {
     console.error('Failed to parse quick notes', err);
@@ -370,7 +432,7 @@ export function getInitialQuickNotes(): QuickNote[] {
 
 export function saveQuickNotes(notes: QuickNote[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_QUICK_NOTES, JSON.stringify(notes));
+    persist('quickNotes', notes);
   } catch (err) {
     console.error('Failed to save quick notes', err);
   }
