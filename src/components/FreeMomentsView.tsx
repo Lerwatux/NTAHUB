@@ -18,7 +18,7 @@ import {
   AppSettings,
 } from '../types';
 import { computeFreeMoments } from '../utils/availability';
-import { formatFrenchDateLong } from '../utils/timezone';
+import { formatFrenchDateLong, getCurrentMonday } from '../utils/timezone';
 import { WeeklyFreeTimeChart } from './WeeklyFreeTimeChart';
 
 interface FreeMomentsViewProps {
@@ -39,9 +39,9 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'common' | 'clement' | 'irene'>('common');
   const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
 
-  // Generate 28 days (4 full weeks) from 2026-10-12
+  // Generate 28 days (4 full weeks) from the current week's Monday
   const dates: string[] = [];
-  const baseDate = new Date(2026, 9, 12);
+  const baseDate = getCurrentMonday();
   for (let i = 0; i < 28; i++) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() + i);

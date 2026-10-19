@@ -21,6 +21,7 @@ import {
 } from '../types';
 import {
   formatParisDate,
+  getTodayParisStr,
   getDayOfWeekIndex,
 } from '../utils/timezone';
 import {
@@ -59,8 +60,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onOpenIcsImport,
   onNavigateToWeekView,
 }) => {
-  // Current view date (default October 2026 as per user context)
-  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 9, 1)); // Oct 2026
+  // Mois affiché (par défaut : le mois en cours)
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [viewType, setViewType] = useState<'month' | 'week'>('month');
   const [showZoneCHolidays, setShowZoneCHolidays] = useState(true);
@@ -87,8 +88,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  const todayStr = getTodayParisStr();
+
   const goToToday = () => {
-    setCurrentDate(new Date(2026, 9, 12)); // Oct 12, 2026
+    setCurrentDate(new Date());
   };
 
   // Build grid days
@@ -474,7 +477,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <div className="flex items-center justify-center sm:justify-between mb-1 sm:mb-1.5">
                   <span
                     className={`text-xs font-bold tabular-nums w-6 h-6 shrink-0 rounded-full flex items-center justify-center ${
-                      dateStr === '2026-10-12'
+                      dateStr === todayStr
                         ? 'bg-indigo-600 text-white font-extrabold'
                         : isCurrentMonth
                         ? 'text-slate-800 dark:text-slate-200'

@@ -29,6 +29,7 @@ import {
 } from '../types';
 import {
   formatParisDate,
+  getTodayParisStr,
   getDayOfWeekIndex,
   timeToMinutes,
   minutesToTime,
@@ -80,8 +81,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onSelectDay,
   onOpenAddEvent,
 }) => {
-  // Base date for current week (default: mid October 2026, aligned with demo date)
-  const [currentWeekDate, setCurrentWeekDate] = useState(() => new Date(2026, 9, 12)); // Oct 12, 2026 (Monday)
+  // Semaine affichée (par défaut : la semaine en cours)
+  const [currentWeekDate, setCurrentWeekDate] = useState(() => new Date());
   const [filter, setFilter] = useState<WeekFilter>('all');
   const [displayMode, setDisplayMode] = useState<WeekDisplayMode>('columns');
 
@@ -148,7 +149,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   const handleGoToToday = () => {
-    setCurrentWeekDate(new Date(2026, 9, 12)); // Today in app context
+    setCurrentWeekDate(new Date());
   };
 
   // Helper for child activities of a day
@@ -189,7 +190,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   });
 
   // Today string for comparison
-  const todayDateStr = '2026-10-12';
+  const todayDateStr = getTodayParisStr();
 
   // Hours array for timeline view (07:00 to 22:00)
   const timelineHours = Array.from({ length: 16 }).map((_, i) => i + 7);
