@@ -540,7 +540,8 @@ export default function App() {
         currentUser={currentUser}
         onSwitchUser={handleSwitchUser}
         onOpenAddEvent={() => {
-          setAddEventInitialDate(undefined);
+          // Si un jour est ouvert, on ajoute l'événement sur ce jour-là
+          setAddEventInitialDate(selectedDate ?? undefined);
           setIsAddEventOpen(true);
         }}
         onOpenNotifications={() => setIsNotificationsOpen(true)}

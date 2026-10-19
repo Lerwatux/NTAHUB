@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bell, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { EventCategory, EventTarget, FamilyEvent, UserProfile, ReminderOption, EventAssignee } from '../types';
+import { getTodayParisStr } from '../utils/timezone';
 
 interface AddEventModalProps {
   isOpen: boolean;
@@ -41,12 +42,19 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [target, setTarget] = useState<EventTarget>('toute la famille');
   const [assignedTo, setAssignedTo] = useState<EventAssignee | undefined>(undefined);
   const [customTitle, setCustomTitle] = useState('');
-  const [date, setDate] = useState(initialDate || new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState(initialDate || getTodayParisStr());
   const [startTime, setStartTime] = useState('18:00');
   const [endTime, setEndTime] = useState('19:00');
   const [reminderMinutes, setReminderMinutes] = useState<ReminderOption>(defaultReminderMinutes);
   const [notifySpouse, setNotifySpouse] = useState(true);
   const [notes, setNotes] = useState('');
+
+  // À chaque ouverture : date du jour sélectionné (ou aujourd'hui par défaut)
+  useEffect(() => {
+    if (isOpen) {
+      setDate(initialDate || getTodayParisStr());
+    }
+  }, [isOpen, initialDate]);
 
   // Fermeture via la touche Échap
   useEffect(() => {
