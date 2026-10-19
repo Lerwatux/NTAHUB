@@ -46,6 +46,7 @@ import {
   WeekTooltipState,
   WeekTooltipData,
 } from './WeekViewTooltip';
+import { useHorizontalSwipe } from '../utils/useHorizontalSwipe';
 
 interface WeekViewProps {
   pncDuties: Map<string, PncDayDuty>;
@@ -147,6 +148,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
     nextD.setDate(nextD.getDate() + 7);
     setCurrentWeekDate(nextD);
   };
+
+  const swipe = useHorizontalSwipe(handlePrevWeek, handleNextWeek);
 
   const handleGoToToday = () => {
     setCurrentWeekDate(new Date());
@@ -405,7 +408,13 @@ export const WeekView: React.FC<WeekViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Main Weekly Grid Display */}
+      {/* 3. Main Weekly Grid Display (balayage gauche / droite pour changer de semaine) */}
+      <div
+        {...swipe.handlers}
+        style={swipe.style}
+        key={`${weekDateStrings[0]}-${swipe.swipeCount}`}
+        className={`${swipe.enterClass} touch-pan-y`}
+      >
       {displayMode === 'columns' ? (
         /* ================= VUE 1 : GRILLE 7 COLONNES DÉTAILLÉES ================= */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
@@ -1181,6 +1190,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
           </div>
         </div>
       )}
+      </div>
 
       {/* 4. Infobulle / Tooltip interactive au survol des vols, activités et événements */}
       <WeekViewTooltip tooltipState={tooltip} />
