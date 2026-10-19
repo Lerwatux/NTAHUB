@@ -395,7 +395,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
           {/* Post-it Board / List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-100/60 dark:bg-slate-950/60">
             {filteredNotes.length === 0 ? (
-              <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-white/50 dark:bg-slate-900/40">
+              <div className="h-64 flex flex-col items-center justify-center text-center p-4 sm:p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-white/50 dark:bg-slate-900/40">
                 <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-500 mb-3">
                   {filter === 'liked' ? (
                     <Heart className="w-6 h-6 fill-rose-500 text-rose-500" />

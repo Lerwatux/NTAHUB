@@ -361,7 +361,7 @@ export const ChildActivitiesManager: React.FC<ChildActivitiesManagerProps> = ({
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
               {/* Enfant */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">

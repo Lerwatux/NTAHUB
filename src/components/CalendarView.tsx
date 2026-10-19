@@ -21,6 +21,7 @@ import {
 } from '../types';
 import {
   formatParisDate,
+  getTodayParisStr,
   getDayOfWeekIndex,
 } from '../utils/timezone';
 import {
@@ -59,8 +60,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onOpenIcsImport,
   onNavigateToWeekView,
 }) => {
-  // Current view date (default October 2026 as per user context)
-  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 9, 1)); // Oct 2026
+  // Mois affiché (par défaut : le mois en cours)
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [viewType, setViewType] = useState<'month' | 'week'>('month');
   const [showZoneCHolidays, setShowZoneCHolidays] = useState(true);
@@ -87,8 +88,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  const todayStr = getTodayParisStr();
+
   const goToToday = () => {
-    setCurrentDate(new Date(2026, 9, 12)); // Oct 12, 2026
+    setCurrentDate(new Date());
   };
 
   // Build grid days
@@ -157,10 +160,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Controls Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 transition-colors">
         {/* Navigation & Month Picker */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={prevPeriod}
               className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -177,19 +180,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
 
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white capitalize min-w-[180px]">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white capitalize min-w-0 flex-1 truncate sm:flex-none sm:min-w-[180px]">
             {monthTitle}
           </h1>
 
           <button
             onClick={goToToday}
-            className="px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs shrink-0 font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Aujourd'hui
           </button>
 
-          {/* View mode toggle (Mois / Semaine) */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium">
+          {/* View mode toggle (Mois / Semaine) — sur téléphone, via la barre du bas */}
+          <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium">
             <button
               onClick={() => setViewType('month')}
               className={`px-3 py-1 rounded-md transition-all ${
@@ -221,16 +224,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {/* Bouton Exporter .ics vers Google Calendar / Outlook */}
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs whitespace-nowrap"
+            className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-indigo-700 shrink-0 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs whitespace-nowrap"
             title="Exporter les événements vers Google Agenda, Outlook ou Apple Calendar (.ics)"
           >
             <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>Exporter .ics</span>
+            <span className="hidden sm:inline">Exporter .ics</span>
           </button>
         </div>
 
         {/* Filter Tabs (Functional segmented buttons) */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium">
+        <div className="flex flex-nowrap sm:flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-medium overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setFilterMode('all')}
             className={`px-3 py-1.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
@@ -239,7 +242,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Tous les plannings
+            <span className="sm:hidden">Tous</span>
+            <span className="hidden sm:inline">Tous les plannings</span>
           </button>
 
           <button
@@ -251,7 +255,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-blue-400" />
-            <span>Clément (PNC)</span>
+            <span>Clément<span className="hidden sm:inline"> (PNC)</span></span>
           </button>
 
           <button
@@ -287,7 +291,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Moments en commun</span>
+            <span><span className="hidden sm:inline">Moments </span>en commun</span>
           </button>
 
           <button
@@ -300,13 +304,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             title="Afficher ou masquer les vacances scolaires de la Zone C (Paris, Créteil, Versailles)"
           >
             <span>🎒</span>
-            <span>Vacances Zone C</span>
+            <span><span className="hidden sm:inline">Vacances </span>Zone C</span>
           </button>
         </div>
       </div>
 
+      {/* Légende compacte (téléphone) */}
+      <div className="sm:hidden flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 text-[11px] text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" />Vol</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500" />Découcher</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" />Cours sol</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />Libre</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-500" />Événement</span>
+        <span className="flex items-center gap-1">❓ Relais requis</span>
+        <span className="w-full text-slate-400">Touchez un jour pour voir le détail.</span>
+      </div>
+
       {/* Quick Legend Bar */}
-      <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 px-2 py-1 gap-y-2">
+      <div className="hidden sm:flex flex-wrap items-center justify-between text-[11px] text-slate-500 px-2 py-1 gap-y-2">
         <div className="flex flex-wrap items-center gap-4">
           <span className="font-semibold text-slate-700">Légende PNC :</span>
           <span className="flex items-center gap-1.5">
@@ -370,7 +385,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Calendar Grid */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
         {/* Days of week header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-2.5">
+        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-center text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 py-2 sm:py-2.5">
           {DAYS_HEADER.map((d, idx) => (
             <div key={d} className={idx >= 5 ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : ''}>
               {d}
@@ -433,7 +448,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <div
                 key={dateStr}
                 onClick={() => onSelectDay(dateStr)}
-                className={`min-h-[125px] p-2 flex flex-col justify-between transition-colors cursor-pointer group relative ${
+                className={`min-h-[68px] sm:min-h-[125px] p-1 sm:p-2 flex flex-col justify-start sm:justify-between min-w-0 overflow-hidden transition-colors cursor-pointer group relative ${
                   !isCurrentMonth
                     ? 'bg-slate-50/50 dark:bg-slate-950/40 text-slate-400 dark:text-slate-600'
                     : holidayZoneC
@@ -444,14 +459,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {/* Zone C School Holiday Top Ribbon */}
                 {holidayZoneC && (
                   <div
-                    className={`-mx-2 -mt-2 mb-1 px-1.5 py-0.5 text-[9px] font-bold flex items-center justify-between border-b ${
+                    className={`-mx-1 -mt-1 sm:-mx-2 sm:-mt-2 mb-1 h-1 sm:h-auto px-0 sm:px-1.5 py-0 sm:py-0.5 text-[9px] font-bold overflow-hidden flex items-center justify-between border-b ${
                       holidayZoneC.isFirstDay
                         ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-700'
                         : 'bg-amber-100/80 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/50'
                     }`}
                     title={`Vacances scolaires Zone C (Paris, Créteil, Versailles) : ${holidayZoneC.period.name}`}
                   >
-                    <span className="truncate flex items-center gap-1">
+                    <span className="hidden sm:flex truncate items-center gap-1">
                       <span>🎒</span>
                       <span className="truncate">{holidayZoneC.isFirstDay ? `Début ${holidayZoneC.period.name}` : holidayZoneC.period.name}</span>
                     </span>
@@ -459,10 +474,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 )}
 
                 {/* Day Header: Day number + Badges */}
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-center sm:justify-between mb-1 sm:mb-1.5">
                   <span
-                    className={`text-xs font-bold tabular-nums w-6 h-6 rounded-full flex items-center justify-center ${
-                      dateStr === '2026-10-12'
+                    className={`text-xs font-bold tabular-nums w-6 h-6 shrink-0 rounded-full flex items-center justify-center ${
+                      dateStr === todayStr
                         ? 'bg-indigo-600 text-white font-extrabold'
                         : isCurrentMonth
                         ? 'text-slate-800 dark:text-slate-200'
@@ -472,7 +487,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {dayNum}
                   </span>
 
-                  <div className="flex items-center gap-1">
+                  <div className="hidden sm:flex items-center gap-1">
                     {/* If both parents fully free */}
                     {isCommonFullFree && (
                       <span
@@ -498,8 +513,46 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 </div>
 
+                {/* Résumé compact (téléphone) : pastilles de couleur */}
+                <div className="sm:hidden flex flex-wrap items-center justify-center gap-0.5 mt-0.5">
+                  {(filterMode === 'all' || filterMode === 'clement') && pncDuty && (
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        pncDuty.type === 'vol'
+                          ? 'bg-blue-500'
+                          : pncDuty.type === 'decoucher'
+                          ? 'bg-indigo-500'
+                          : pncDuty.type === 'cours_au_sol'
+                          ? 'bg-purple-500'
+                          : pncDuty.type === 'off'
+                          ? 'bg-emerald-500'
+                          : 'bg-slate-300'
+                      }`}
+                    />
+                  )}
+                  {(filterMode === 'all' || filterMode === 'irene') &&
+                    (ireneStatus === 'cp' || ireneStatus === 'rtt') && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
+                    )}
+                  {(filterMode === 'all' || filterMode === 'children') &&
+                    dayActivities.map((act) => (
+                      <span key={act.id} className="w-2 h-2 rounded-full" style={{ backgroundColor: act.color }} />
+                    ))}
+                  {dayEvents.length > 0 && (
+                    <span className="min-w-[14px] h-3.5 px-0.5 rounded-full bg-pink-500 text-white text-[9px] font-bold leading-none flex items-center justify-center">
+                      {dayEvents.length}
+                    </span>
+                  )}
+                  {hasConflict && <span className="text-[10px] leading-none">❓</span>}
+                  {isCommonFullFree && (
+                    <span className="w-full text-center text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
+                      Ensemble
+                    </span>
+                  )}
+                </div>
+
                 {/* Main Content Area */}
-                <div className="space-y-1.5 flex-1">
+                <div className="hidden sm:block space-y-1.5 flex-1">
                   {/* 1. CLÉMENT PNC DUTY BADGE */}
                   {(filterMode === 'all' || filterMode === 'clement') && (
                     <div>
@@ -688,7 +741,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
 
                 {/* Hover affordance */}
-                <div className="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-600 font-semibold pt-1 text-right transition-opacity">
+                <div className="hidden sm:block opacity-0 group-hover:opacity-100 text-[10px] text-indigo-600 font-semibold pt-1 text-right transition-opacity">
                   Voir détails →
                 </div>
               </div>

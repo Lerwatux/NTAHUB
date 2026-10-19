@@ -78,7 +78,7 @@ export const PncManagerView: React.FC<PncManagerViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Rules banner */}
-      <div className="bg-blue-50/80 dark:bg-blue-950/40 rounded-xl p-6 border border-blue-200 dark:border-blue-900 shadow-xs">
+      <div className="bg-blue-50/80 dark:bg-blue-950/40 rounded-xl p-4 sm:p-6 border border-blue-200 dark:border-blue-900 shadow-xs">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5">
             <Plane className="w-4 h-4" />
@@ -136,7 +136,7 @@ export const PncManagerView: React.FC<PncManagerViewProps> = ({
       </div>
 
       {/* Upload Zone */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 sm:p-6 space-y-4">
         <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Upload className="w-4 h-4 text-indigo-600" />
           <span>Importer un fichier ICS (.ics) de planning</span>

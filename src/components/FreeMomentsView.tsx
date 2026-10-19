@@ -18,7 +18,7 @@ import {
   AppSettings,
 } from '../types';
 import { computeFreeMoments } from '../utils/availability';
-import { formatFrenchDateLong } from '../utils/timezone';
+import { formatFrenchDateLong, getCurrentMonday } from '../utils/timezone';
 import { WeeklyFreeTimeChart } from './WeeklyFreeTimeChart';
 
 interface FreeMomentsViewProps {
@@ -39,9 +39,9 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'common' | 'clement' | 'irene'>('common');
   const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
 
-  // Generate 28 days (4 full weeks) from 2026-10-12
+  // Generate 28 days (4 full weeks) from the current week's Monday
   const dates: string[] = [];
-  const baseDate = new Date(2026, 9, 12);
+  const baseDate = getCurrentMonday();
   for (let i = 0; i < 28; i++) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() + i);
@@ -92,11 +92,11 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header with high level insight */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">✨</span>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
               Analyse des Moments Libres & Disponibilités
             </h1>
           </div>
@@ -106,41 +106,41 @@ export const FreeMomentsView: React.FC<FreeMomentsViewProps> = ({
         </div>
 
         {/* Tab buttons */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold shrink-0">
+        <div className="grid grid-cols-3 sm:flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold shrink-0">
           <button
             onClick={() => setActiveTab('common')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
               activeTab === 'common'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <Heart className="w-3.5 h-3.5" />
-            <span>Moments en commun ({commonFree.length})</span>
+            <Heart className="hidden sm:block w-3.5 h-3.5" />
+            <span><span className="sm:hidden">Ensemble</span><span className="hidden sm:inline">Moments en commun</span> ({commonFree.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('clement')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
               activeTab === 'clement'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Clément libre</span>
+            <span>Clément<span className="hidden sm:inline"> libre</span></span>
           </button>
 
           <button
             onClick={() => setActiveTab('irene')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
               activeTab === 'irene'
                 ? 'bg-pink-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Irène libre</span>
+            <span>Irène<span className="hidden sm:inline"> libre</span></span>
           </button>
         </div>
       </div>

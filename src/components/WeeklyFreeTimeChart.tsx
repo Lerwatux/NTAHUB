@@ -37,6 +37,7 @@ import {
   computeFreeSlotsForDay,
   intersectIntervals,
 } from '../utils/availability';
+import { getCurrentMonday, getIsoWeekNumber } from '../utils/timezone';
 
 export interface WeekFreeStats {
   weekKey: string; // e.g. "S42"
@@ -88,10 +89,10 @@ export const WeeklyFreeTimeChart: React.FC<WeeklyFreeTimeChartProps> = ({
   const [chartType, setChartType] = useState<'bar' | 'area'>('bar');
   const [metricMode, setMetricMode] = useState<'percent' | 'hours'>('percent');
 
-  // Compute stats for 4 weeks starting from Monday 2026-10-12
+  // Compute stats for 4 weeks starting from the current week's Monday
   const weeklyStats: WeekFreeStats[] = useMemo(() => {
     const weeks: WeekFreeStats[] = [];
-    const baseDate = new Date(2026, 9, 12); // Oct 12, 2026 is Monday
+    const baseDate = getCurrentMonday();
 
     for (let w = 0; w < 4; w++) {
       const weekDates: string[] = [];
@@ -156,7 +157,7 @@ export const WeeklyFreeTimeChart: React.FC<WeeklyFreeTimeChartProps> = ({
       const syncRatio =
         minIndividual > 0 ? Math.round((commonMin / minIndividual) * 100) : 0;
 
-      const weekNum = 42 + w;
+      const weekNum = getIsoWeekNumber(startDate);
       const startDay = startDate.getDate();
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6);
