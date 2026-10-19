@@ -8,11 +8,14 @@ import {
   AlertCircle,
   Clock,
   Sparkles,
-  Download,
+  BookOpen,
+  Laptop,
+  ChevronDown,
 } from 'lucide-react';
 import {
   PncDayDuty,
   PncDayType,
+  DEFAULT_SETTINGS,
   IreneDayOverride,
   IreneWorkStatus,
   ChildActivity,
@@ -30,7 +33,6 @@ import {
   checkChildActivityConflict,
 } from '../utils/availability';
 import { getZoneCHoliday } from '../utils/holidaysZoneC';
-import { ExportIcsModal } from './ExportIcsModal';
 import { useHorizontalSwipe } from '../utils/useHorizontalSwipe';
 
 interface CalendarViewProps {
@@ -95,7 +97,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [viewType, setViewType] = useState<'month' | 'week'>('month');
   const [showZoneCHolidays, setShowZoneCHolidays] = useState(true);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  // Légende repliable (téléphone), fermée par défaut, mémorisée sur l'appareil
+  const [isLegendOpen, setIsLegendOpen] = useState(() => {
+    try {
+      return localStorage.getItem('ntahub_legend_open') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleLegend = () => {
+    setIsLegendOpen((open) => {
+      try {
+        localStorage.setItem('ntahub_legend_open', open ? '0' : '1');
+      } catch {
+        // stockage indisponible : on garde simplement l'état en mémoire
+      }
+      return !open;
+    });
+  };
 
   // Month navigation
   const prevPeriod = () => {
@@ -122,8 +141,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const todayStr = getTodayParisStr();
 
+  // Revient à la période en cours et ouvre le programme du jour
   const goToToday = () => {
     setCurrentDate(new Date());
+    onSelectDay(todayStr);
   };
 
   // Build grid days
@@ -253,15 +274,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
 
-          {/* Bouton Exporter .ics vers Google Calendar / Outlook */}
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-indigo-700 shrink-0 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs whitespace-nowrap"
-            title="Exporter les événements vers Google Agenda, Outlook ou Apple Calendar (.ics)"
-          >
-            <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span className="hidden sm:inline">Exporter .ics</span>
-          </button>
         </div>
 
         {/* Filter Tabs (Functional segmented buttons) */}
@@ -341,8 +353,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Légende compacte (téléphone) */}
-      <div className="sm:hidden px-1 space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300">
+      {/* Légende compacte (téléphone), repliable */}
+      <div className="sm:hidden px-1 text-[11px] text-slate-600 dark:text-slate-300">
+        <button
+          type="button"
+          onClick={toggleLegend}
+          aria-expanded={isLegendOpen}
+          className="w-full flex items-center justify-between py-1 font-semibold text-slate-700 dark:text-slate-200"
+        >
+          <span className="flex items-center gap-2">
+            <span className="flex h-3.5 w-6 rounded overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
+              <span className="flex-1 bg-sky-300 dark:bg-sky-700" />
+              <span className="w-px bg-white" />
+              <span className="flex-1 bg-yellow-300 dark:bg-yellow-500" />
+            </span>
+            Légende
+          </span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${isLegendOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isLegendOpen && (
+        <div className="space-y-1.5 pt-1 pb-1">
         <div className="flex items-center gap-2">
           <span className="flex h-4 w-7 rounded overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
             <span className="flex-1 bg-sky-300 dark:bg-sky-700" />
@@ -368,6 +398,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <span>❓ Relais requis</span>
         </div>
         <div className="text-slate-400">Glissez pour changer de mois · touchez un jour pour le détail.</div>
+        </div>
+        )}
       </div>
 
       {/* Quick Legend Bar */}
@@ -584,6 +616,70 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Symboles et horaires (téléphone) */}
+                {(() => {
+                  const clementIcon =
+                    pncDuty?.type === 'vol' || pncDuty?.type === 'decoucher' ? (
+                      <Plane className="w-3 h-3" />
+                    ) : pncDuty?.type === 'cours_au_sol' ? (
+                      <BookOpen className="w-3 h-3" />
+                    ) : null;
+                  const ireneWorking = ireneStatus === 'bureau' || ireneStatus === 'tt';
+                  const ireneIcon = ireneWorking ? <Laptop className="w-3 h-3" /> : null;
+                  const iconTone = isCurrentMonth
+                    ? 'text-slate-800 dark:text-white'
+                    : 'text-slate-500 dark:text-slate-500';
+
+                  if (filterMode === 'all') {
+                    if (isCommonFullFree || (!clementIcon && !ireneIcon)) return null;
+                    return (
+                      <div className={`sm:hidden relative flex ${iconTone}`} aria-hidden="true">
+                        <span className="flex-1 flex justify-center">
+                          {clementIcon && <span className="rounded-full p-0.5 bg-white/85 dark:bg-slate-900/75">{clementIcon}</span>}
+                        </span>
+                        <span className="flex-1 flex justify-center">
+                          {ireneIcon && <span className="rounded-full p-0.5 bg-white/85 dark:bg-slate-900/75">{ireneIcon}</span>}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  if (filterMode === 'clement' && clementIcon && pncDuty) {
+                    return (
+                      <div className={`sm:hidden relative flex flex-col items-center gap-0.5 font-mono tabular-nums text-[9px] leading-tight ${iconTone}`}>
+                        {clementIcon}
+                        {pncDuty.type === 'cours_au_sol' ? (
+                          <span>Déb {pncDuty.briefingTime || '09:00'}</span>
+                        ) : (
+                          <>
+                            <span>Brf {pncDuty.briefingTime || '--:--'}</span>
+                            <span>
+                              {pncDuty.type === 'decoucher' || pncDuty.isLayover || !pncDuty.freeTimeAtHome
+                                ? 'Découch.'
+                                : `Msn ${pncDuty.freeTimeAtHome}`}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (filterMode === 'irene' && ireneWorking) {
+                    const s = settings ?? DEFAULT_SETTINGS;
+                    const start = ireneStatus === 'tt' ? s.ireneTtWorkStart : s.ireneWorkStart;
+                    const end = ireneStatus === 'tt' ? s.ireneTtWorkEnd : s.ireneWorkEnd;
+                    return (
+                      <div className={`sm:hidden relative flex flex-col items-center gap-0.5 font-mono tabular-nums text-[9px] leading-tight ${iconTone}`}>
+                        {ireneIcon}
+                        <span>{start}</span>
+                        <span>{end}</span>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
 
                 {/* Résumé compact (téléphone) : activités enfants et événements */}
                 <div className="sm:hidden relative flex flex-wrap items-center justify-center gap-0.5 mt-auto mb-0.5">
@@ -806,14 +902,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Modal d'exportation vers Google Calendar / Outlook (.ics) */}
-      <ExportIcsModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        events={events}
-        currentMonthName={monthTitle}
-        currentMonthDates={displayDates}
-      />
     </div>
   );
 };

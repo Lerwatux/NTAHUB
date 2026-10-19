@@ -46,6 +46,7 @@ import { PncManagerView } from './components/PncManagerView';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { SettingsModal } from './components/SettingsModal';
 import { QuickNotesDrawer } from './components/QuickNotesDrawer';
+import { ExportIcsModal } from './components/ExportIcsModal';
 import { StickyNote } from 'lucide-react';
 import { getIreneStatusOnDate } from './utils/availability';
 import {
@@ -54,6 +55,14 @@ import {
   formatParisTime,
   timeToMinutes,
 } from './utils/timezone';
+
+/** Dates "YYYY-MM-DD" du mois en cours (pour l'export .ics « ce mois-ci ») */
+function getCurrentMonthDates(): string[] {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return Array.from({ length: daysInMonth }, (_, i) => `${prefix}-${String(i + 1).padStart(2, '0')}`);
+}
 
 export default function App() {
   // State initialization
@@ -74,6 +83,7 @@ export default function App() {
   const [addEventInitialDate, setAddEventInitialDate] = useState<string | undefined>(undefined);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
+  const [isExportIcsOpen, setIsExportIcsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Synchronize Dark Mode on HTML document root
@@ -666,6 +676,19 @@ export default function App() {
         settings={settings}
         onSaveSettings={handleSaveSettings}
         onTriggerTestReminder={handleTriggerTestReminder}
+        onOpenExportIcs={() => {
+          setIsSettingsOpen(false);
+          setIsExportIcsOpen(true);
+        }}
+      />
+
+      {/* Export .ics (ouvert depuis les réglages) */}
+      <ExportIcsModal
+        isOpen={isExportIcsOpen}
+        onClose={() => setIsExportIcsOpen(false)}
+        events={events}
+        currentMonthName={new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date())}
+        currentMonthDates={getCurrentMonthDates()}
       />
 
       {/* Floating Quick Notes shortcut button */}
