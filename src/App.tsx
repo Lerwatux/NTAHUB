@@ -543,7 +543,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
         {currentView === 'calendar' && (
           <CalendarView
             pncDuties={pncDuties}
@@ -671,7 +671,7 @@ export default function App() {
       {/* Floating Quick Notes shortcut button */}
       <button
         onClick={() => setIsQuickNotesOpen(true)}
-        className="fixed bottom-5 right-5 z-30 flex items-center gap-2 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-5 right-4 md:right-5 z-30 flex items-center gap-2 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none"
         title="Notes Rapides & Pense-bêtes (Post-it)"
         aria-label="Ouvrir les notes rapides"
       >

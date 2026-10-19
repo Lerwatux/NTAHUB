@@ -345,7 +345,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Vols & Découchers
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekFlightCount} vol{weekFlightCount > 1 ? 's' : ''}
               {weekLayoverCount > 0 && ` (${weekLayoverCount} découcher)`}
             </div>
@@ -360,7 +360,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Travail Irène
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               Rythme Bureau & TT
             </div>
           </div>
@@ -374,7 +374,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Activités Enfants
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekActivitiesCount} séance{weekActivitiesCount > 1 ? 's' : ''}
               {weekConflictsCount > 0 ? (
                 <span className="text-red-600 dark:text-red-400 text-xs ml-1 font-extrabold">
@@ -397,7 +397,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Événements Familiaux
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekEventsCount} événement{weekEventsCount > 1 ? 's' : ''}
             </div>
           </div>
@@ -446,7 +446,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             return (
               <div
                 key={dateStr}
-                className={`bg-white dark:bg-slate-900 rounded-xl border transition-all flex flex-col min-h-[500px] shadow-xs ${
+                className={`bg-white dark:bg-slate-900 rounded-xl border transition-all flex flex-col lg:min-h-[500px] shadow-xs ${
                   isToday
                     ? 'border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/20'
                     : 'border-slate-200 dark:border-slate-800'

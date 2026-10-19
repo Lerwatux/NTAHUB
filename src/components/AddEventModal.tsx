@@ -132,7 +132,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Corps du formulaire défilant avec barre de défilement visible */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
             {/* Menu déroulant catégorie (remplace le titre libre) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">

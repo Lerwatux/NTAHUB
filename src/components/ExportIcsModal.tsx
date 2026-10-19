@@ -136,7 +136,7 @@ export const ExportIcsModal: React.FC<ExportIcsModalProps> = ({
         </div>
 
         {/* Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
           {/* Success Banner */}
           {downloadSuccess && (
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2.5 text-emerald-900 dark:text-emerald-200 text-xs animate-in fade-in">
