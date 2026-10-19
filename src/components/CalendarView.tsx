@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import {
   PncDayDuty,
+  PncDayType,
   IreneDayOverride,
   IreneWorkStatus,
   ChildActivity,
@@ -30,6 +31,7 @@ import {
 } from '../utils/availability';
 import { getZoneCHoliday } from '../utils/holidaysZoneC';
 import { ExportIcsModal } from './ExportIcsModal';
+import { useHorizontalSwipe } from '../utils/useHorizontalSwipe';
 
 interface CalendarViewProps {
   pncDuties: Map<string, PncDayDuty>;
@@ -47,6 +49,34 @@ interface CalendarViewProps {
 type FilterMode = 'all' | 'clement' | 'irene' | 'children' | 'common_free';
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+/** Couleur de la bande verticale de Clément (téléphone) */
+function clementBandClass(type: PncDayType | undefined): string {
+  switch (type) {
+    case 'vol':
+      return 'bg-sky-300 dark:bg-sky-700';
+    case 'decoucher':
+      return 'bg-sky-400 dark:bg-sky-800 bg-hatch';
+    case 'cours_au_sol':
+      return 'bg-[#dcb68c] dark:bg-[#7a5a3a]';
+    case 'off':
+      return 'bg-emerald-300 dark:bg-emerald-700';
+    default:
+      return ''; // Blanc (astreinte) ou rien de planifié
+  }
+}
+
+/** Couleur de la bande verticale d'Irène (téléphone) */
+function ireneBandClass(status: IreneWorkStatus | 'weekend'): string {
+  switch (status) {
+    case 'bureau':
+      return 'bg-yellow-300 dark:bg-yellow-500';
+    case 'tt':
+      return 'bg-yellow-300 dark:bg-yellow-500 bg-hatch';
+    default:
+      return 'bg-emerald-300 dark:bg-emerald-700'; // CP, RTT, week-end
+  }
+}
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   pncDuties,
@@ -87,6 +117,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       setCurrentDate(nextD);
     }
   };
+
+  const swipe = useHorizontalSwipe(prevPeriod, nextPeriod);
 
   const todayStr = getTodayParisStr();
 
@@ -310,14 +342,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       </div>
 
       {/* Légende compacte (téléphone) */}
-      <div className="sm:hidden flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 text-[11px] text-slate-500 dark:text-slate-400">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" />Vol</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500" />Découcher</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" />Cours sol</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />Libre</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-500" />Événement</span>
-        <span className="flex items-center gap-1">❓ Relais requis</span>
-        <span className="w-full text-slate-400">Touchez un jour pour voir le détail.</span>
+      <div className="sm:hidden px-1 space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300">
+        <div className="flex items-center gap-2">
+          <span className="flex h-4 w-7 rounded overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
+            <span className="flex-1 bg-sky-300 dark:bg-sky-700" />
+            <span className="w-px bg-white" />
+            <span className="flex-1 bg-yellow-300 dark:bg-yellow-500" />
+          </span>
+          <span>
+            Moitié gauche : <strong>Clément</strong> · moitié droite : <strong>Irène</strong>
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-300 dark:bg-sky-700" />Vol</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-400 dark:bg-sky-800 bg-hatch" />Découcher</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#dcb68c] dark:bg-[#7a5a3a]" />Sol</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500" />Travail</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500 bg-hatch" />Télétravail</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700" />Libre</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400">
+          <span>Case toute verte = libres ensemble</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" />Activité enfant</span>
+          <span className="flex items-center gap-1"><span className="min-w-[14px] h-3.5 px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-bold flex items-center justify-center">2</span>Événements</span>
+          <span>❓ Relais requis</span>
+        </div>
+        <div className="text-slate-400">Glissez pour changer de mois · touchez un jour pour le détail.</div>
       </div>
 
       {/* Quick Legend Bar */}
@@ -382,8 +432,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
+      {/* Calendar Grid (balayage gauche / droite pour changer de période) */}
+      <div
+        {...swipe.handlers}
+        style={swipe.style}
+        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors touch-pan-y select-none sm:select-auto"
+      >
         {/* Days of week header */}
         <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-center text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 py-2 sm:py-2.5">
           {DAYS_HEADER.map((d, idx) => (
@@ -394,7 +448,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         {/* Calendar Cells */}
-        <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800">
+        <div key={`${monthTitle}-${swipe.swipeCount}`} className={`${swipe.enterClass} grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800`}>
           {displayDates.map((dateStr) => {
             const dateObj = new Date(dateStr);
             const isCurrentMonth = dateObj.getMonth() === month;
@@ -456,10 +510,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     : 'bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/60'
                 } ${isCommonFreeFiltered ? 'ring-2 ring-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/30' : ''}`}
               >
+                {/* Bandes verticales (téléphone) : Clément à gauche, Irène à droite, tout vert si libres ensemble */}
+                {filterMode !== 'children' && (
+                  <div
+                    className={`sm:hidden absolute inset-0 flex pointer-events-none ${isCurrentMonth ? '' : 'opacity-35'}`}
+                    aria-hidden="true"
+                  >
+                    {isCommonFullFree && filterMode !== 'clement' && filterMode !== 'irene' ? (
+                      <div className="flex-1 bg-emerald-300 dark:bg-emerald-700" />
+                    ) : filterMode === 'common_free' ? null : (
+                      <>
+                        {filterMode !== 'irene' && <div className={`flex-1 ${clementBandClass(pncDuty?.type)}`} />}
+                        {filterMode === 'all' && <div className="w-px bg-white/80 dark:bg-slate-900/80" />}
+                        {filterMode !== 'clement' && <div className={`flex-1 ${ireneBandClass(ireneStatus)}`} />}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Zone C School Holiday Top Ribbon */}
                 {holidayZoneC && (
                   <div
-                    className={`-mx-1 -mt-1 sm:-mx-2 sm:-mt-2 mb-1 h-1 sm:h-auto px-0 sm:px-1.5 py-0 sm:py-0.5 text-[9px] font-bold overflow-hidden flex items-center justify-between border-b ${
+                    className={`relative -mx-1 -mt-1 sm:-mx-2 sm:-mt-2 mb-1 h-1 sm:h-auto px-0 sm:px-1.5 py-0 sm:py-0.5 text-[9px] font-bold overflow-hidden flex items-center justify-between border-b ${
                       holidayZoneC.isFirstDay
                         ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-700'
                         : 'bg-amber-100/80 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/50'
@@ -474,14 +546,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 )}
 
                 {/* Day Header: Day number + Badges */}
-                <div className="flex items-center justify-center sm:justify-between mb-1 sm:mb-1.5">
+                <div className="relative flex items-center justify-center sm:justify-between mb-1 sm:mb-1.5">
                   <span
                     className={`text-xs font-bold tabular-nums w-6 h-6 shrink-0 rounded-full flex items-center justify-center ${
                       dateStr === todayStr
-                        ? 'bg-indigo-600 text-white font-extrabold'
+                        ? 'bg-indigo-600 text-white font-extrabold ring-2 ring-white dark:ring-slate-900'
                         : isCurrentMonth
-                        ? 'text-slate-800 dark:text-slate-200'
-                        : 'text-slate-400 dark:text-slate-600'
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-500 dark:text-slate-500'
                     }`}
                   >
                     {dayNum}
@@ -513,40 +585,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </div>
                 </div>
 
-                {/* Résumé compact (téléphone) : pastilles de couleur */}
-                <div className="sm:hidden flex flex-wrap items-center justify-center gap-0.5 mt-0.5">
-                  {(filterMode === 'all' || filterMode === 'clement') && pncDuty && (
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        pncDuty.type === 'vol'
-                          ? 'bg-blue-500'
-                          : pncDuty.type === 'decoucher'
-                          ? 'bg-indigo-500'
-                          : pncDuty.type === 'cours_au_sol'
-                          ? 'bg-purple-500'
-                          : pncDuty.type === 'off'
-                          ? 'bg-emerald-500'
-                          : 'bg-slate-300'
-                      }`}
-                    />
-                  )}
-                  {(filterMode === 'all' || filterMode === 'irene') &&
-                    (ireneStatus === 'cp' || ireneStatus === 'rtt') && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
-                    )}
+                {/* Résumé compact (téléphone) : activités enfants et événements */}
+                <div className="sm:hidden relative flex flex-wrap items-center justify-center gap-0.5 mt-auto mb-0.5">
                   {(filterMode === 'all' || filterMode === 'children') &&
                     dayActivities.map((act) => (
-                      <span key={act.id} className="w-2 h-2 rounded-full" style={{ backgroundColor: act.color }} />
+                      <span
+                        key={act.id}
+                        className="w-2.5 h-2.5 rounded-full ring-[1.5px] ring-white dark:ring-slate-900"
+                        style={{ backgroundColor: act.color }}
+                      />
                     ))}
                   {dayEvents.length > 0 && (
-                    <span className="min-w-[14px] h-3.5 px-0.5 rounded-full bg-pink-500 text-white text-[9px] font-bold leading-none flex items-center justify-center">
+                    <span className="min-w-[16px] h-4 px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold leading-none flex items-center justify-center ring-[1.5px] ring-white dark:ring-slate-900">
                       {dayEvents.length}
                     </span>
                   )}
-                  {hasConflict && <span className="text-[10px] leading-none">❓</span>}
-                  {isCommonFullFree && (
-                    <span className="w-full text-center text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
-                      Ensemble
+                  {hasConflict && (
+                    <span className="w-4 h-4 rounded-full bg-white dark:bg-slate-900 text-[10px] leading-none flex items-center justify-center">
+                      ❓
                     </span>
                   )}
                 </div>
