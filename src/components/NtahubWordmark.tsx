@@ -4,7 +4,7 @@ export interface NtahubWordmarkProps {
   className?: string;
   height?: number;
   /**
-   * 'banner' : version horizontale avec fond bleu nuit officiel #182c47
+   * 'banner' : version horizontale vectorielle (SVG) avec fond bleu nuit #14304d
    * 'square' : version carrée 500x500 officielle en JPEG
    */
   variant?: 'banner' | 'square';
@@ -22,7 +22,7 @@ export const NtahubWordmark: React.FC<NtahubWordmarkProps> = ({
   height = 33,
   variant = 'banner',
 }) => {
-  const imageSrc = variant === 'square' ? '/logo_ntahub.jpg' : '/logo_ntahub_banner.jpg';
+  const imageSrc = variant === 'square' ? '/logo_ntahub.jpg' : '/logo_ntahub_banner.svg';
 
   return (
     <img

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bell, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { EventCategory, EventTarget, FamilyEvent, UserProfile, ReminderOption, EventAssignee } from '../types';
+import { getTodayParisStr } from '../utils/timezone';
 
 interface AddEventModalProps {
   isOpen: boolean;
@@ -41,12 +42,19 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [target, setTarget] = useState<EventTarget>('toute la famille');
   const [assignedTo, setAssignedTo] = useState<EventAssignee | undefined>(undefined);
   const [customTitle, setCustomTitle] = useState('');
-  const [date, setDate] = useState(initialDate || new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState(initialDate || getTodayParisStr());
   const [startTime, setStartTime] = useState('18:00');
   const [endTime, setEndTime] = useState('19:00');
   const [reminderMinutes, setReminderMinutes] = useState<ReminderOption>(defaultReminderMinutes);
   const [notifySpouse, setNotifySpouse] = useState(true);
   const [notes, setNotes] = useState('');
+
+  // À chaque ouverture : date du jour sélectionné (ou aujourd'hui par défaut)
+  useEffect(() => {
+    if (isOpen) {
+      setDate(initialDate || getTodayParisStr());
+    }
+  }, [isOpen, initialDate]);
 
   // Fermeture via la touche Échap
   useEffect(() => {
@@ -132,7 +140,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Corps du formulaire défilant avec barre de défilement visible */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
             {/* Menu déroulant catégorie (remplace le titre libre) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">

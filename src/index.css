@@ -27,3 +27,24 @@ button[aria-disabled="true"] {
   transform: none !important;
 }
 
+
+/* Entrée du mois / de la semaine après un balayage au doigt */
+@keyframes swipe-in-right {
+  from { transform: translateX(40px); opacity: 0.3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes swipe-in-left {
+  from { transform: translateX(-40px); opacity: 0.3; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-swipe-in-right { animation: swipe-in-right 220ms ease-out; }
+.animate-swipe-in-left { animation: swipe-in-left 220ms ease-out; }
+
+/* Hachures : découcher (Clément) et télétravail (Irène) */
+.bg-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0 3px,
+    transparent 3px 8px
+  );
+}

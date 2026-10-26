@@ -13,6 +13,7 @@ import {
   Bell,
   AlarmClock,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { AppSettings, DEFAULT_SETTINGS, ReminderOption } from '../types';
 
@@ -22,6 +23,7 @@ interface SettingsModalProps {
   settings: AppSettings;
   onSaveSettings: (newSettings: AppSettings) => void;
   onTriggerTestReminder?: (minutes: ReminderOption) => void;
+  onOpenExportIcs?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -30,6 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSaveSettings,
   onTriggerTestReminder,
+  onOpenExportIcs,
 }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>({ ...settings });
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -117,7 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {/* 1. APPARENCE / MODE NUIT */}
           <section className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/60">
             <div className="flex items-center justify-between">
@@ -655,6 +658,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
           </section>
+
+          {/* 5. EXPORT VERS UN AGENDA EXTERNE (.ics) */}
+          {onOpenExportIcs && (
+            <section className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/60 space-y-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <Download className="w-4 h-4" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Exporter vers un agenda
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Télécharge les événements familiaux au format .ics pour les ajouter à Google Agenda, Outlook ou Apple Calendar.
+              </p>
+              <button
+                type="button"
+                onClick={onOpenExportIcs}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Exporter .ics</span>
+              </button>
+            </section>
+          )}
         </form>
 
         {/* Footer */}

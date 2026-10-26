@@ -70,6 +70,35 @@ export function formatParisDate(date: Date): string {
 }
 
 /**
+ * Date du jour à Paris : "YYYY-MM-DD"
+ */
+export function getTodayParisStr(): string {
+  return formatParisDate(new Date());
+}
+
+/**
+ * Lundi de la semaine en cours (à minuit, heure locale)
+ */
+export function getCurrentMonday(): Date {
+  const monday = new Date();
+  monday.setHours(0, 0, 0, 0);
+  const day = (monday.getDay() + 6) % 7; // 0 = lundi
+  monday.setDate(monday.getDate() - day);
+  return monday;
+}
+
+/**
+ * Numéro de semaine ISO 8601 (la semaine 1 contient le premier jeudi de l'année)
+ */
+export function getIsoWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/**
  * Calculate briefing time: e.g. 75 minutes BEFORE departure (in local Paris time)
  */
 export function calculateBriefingTime(departureDate: Date, briefingMinutes = 75): string {

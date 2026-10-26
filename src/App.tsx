@@ -48,6 +48,7 @@ import { PncManagerView } from './components/PncManagerView';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { SettingsModal } from './components/SettingsModal';
 import { QuickNotesDrawer } from './components/QuickNotesDrawer';
+import { ExportIcsModal } from './components/ExportIcsModal';
 import { StickyNote } from 'lucide-react';
 import { getIreneStatusOnDate } from './utils/availability';
 import {
@@ -56,6 +57,14 @@ import {
   formatParisTime,
   timeToMinutes,
 } from './utils/timezone';
+
+/** Dates "YYYY-MM-DD" du mois en cours (pour l'export .ics « ce mois-ci ») */
+function getCurrentMonthDates(): string[] {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return Array.from({ length: daysInMonth }, (_, i) => `${prefix}-${String(i + 1).padStart(2, '0')}`);
+}
 
 interface AppProps {
   // Compte connecté quand la synchronisation Firebase est active (null = mode local).
@@ -81,6 +90,7 @@ export default function App({ account = null }: AppProps) {
   const [addEventInitialDate, setAddEventInitialDate] = useState<string | undefined>(undefined);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
+  const [isExportIcsOpen, setIsExportIcsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Reçoit en temps réel les modifications faites sur l'autre téléphone
@@ -551,7 +561,8 @@ export default function App({ account = null }: AppProps) {
         currentUser={currentUser}
         onSwitchUser={handleSwitchUser}
         onOpenAddEvent={() => {
-          setAddEventInitialDate(undefined);
+          // Si un jour est ouvert, on ajoute l'événement sur ce jour-là
+          setAddEventInitialDate(selectedDate ?? undefined);
           setIsAddEventOpen(true);
         }}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
@@ -564,7 +575,7 @@ export default function App({ account = null }: AppProps) {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
         {currentView === 'calendar' && (
           <CalendarView
             pncDuties={pncDuties}
@@ -687,6 +698,19 @@ export default function App({ account = null }: AppProps) {
         settings={settings}
         onSaveSettings={handleSaveSettings}
         onTriggerTestReminder={handleTriggerTestReminder}
+        onOpenExportIcs={() => {
+          setIsSettingsOpen(false);
+          setIsExportIcsOpen(true);
+        }}
+      />
+
+      {/* Export .ics (ouvert depuis les réglages) */}
+      <ExportIcsModal
+        isOpen={isExportIcsOpen}
+        onClose={() => setIsExportIcsOpen(false)}
+        events={events}
+        currentMonthName={new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date())}
+        currentMonthDates={getCurrentMonthDates()}
       />
 
       {account && (
@@ -701,7 +725,7 @@ export default function App({ account = null }: AppProps) {
       {/* Floating Quick Notes shortcut button */}
       <button
         onClick={() => setIsQuickNotesOpen(true)}
-        className="fixed bottom-5 right-5 z-30 flex items-center gap-2 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-5 right-4 md:right-5 z-30 flex items-center gap-2 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 group focus:outline-none"
         title="Notes Rapides & Pense-bêtes (Post-it)"
         aria-label="Ouvrir les notes rapides"
       >

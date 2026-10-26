@@ -29,6 +29,7 @@ import {
 } from '../types';
 import {
   formatParisDate,
+  getTodayParisStr,
   getDayOfWeekIndex,
   timeToMinutes,
   minutesToTime,
@@ -45,6 +46,7 @@ import {
   WeekTooltipState,
   WeekTooltipData,
 } from './WeekViewTooltip';
+import { useHorizontalSwipe } from '../utils/useHorizontalSwipe';
 
 interface WeekViewProps {
   pncDuties: Map<string, PncDayDuty>;
@@ -80,8 +82,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onSelectDay,
   onOpenAddEvent,
 }) => {
-  // Base date for current week (default: mid October 2026, aligned with demo date)
-  const [currentWeekDate, setCurrentWeekDate] = useState(() => new Date(2026, 9, 12)); // Oct 12, 2026 (Monday)
+  // Semaine affichée (par défaut : la semaine en cours)
+  const [currentWeekDate, setCurrentWeekDate] = useState(() => new Date());
   const [filter, setFilter] = useState<WeekFilter>('all');
   const [displayMode, setDisplayMode] = useState<WeekDisplayMode>('columns');
 
@@ -147,8 +149,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
     setCurrentWeekDate(nextD);
   };
 
+  const swipe = useHorizontalSwipe(handlePrevWeek, handleNextWeek);
+
   const handleGoToToday = () => {
-    setCurrentWeekDate(new Date(2026, 9, 12)); // Today in app context
+    setCurrentWeekDate(new Date());
   };
 
   // Helper for child activities of a day
@@ -189,7 +193,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   });
 
   // Today string for comparison
-  const todayDateStr = '2026-10-12';
+  const todayDateStr = getTodayParisStr();
 
   // Hours array for timeline view (07:00 to 22:00)
   const timelineHours = Array.from({ length: 16 }).map((_, i) => i + 7);
@@ -345,7 +349,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Vols & Découchers
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekFlightCount} vol{weekFlightCount > 1 ? 's' : ''}
               {weekLayoverCount > 0 && ` (${weekLayoverCount} découcher)`}
             </div>
@@ -360,7 +364,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Travail Irène
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               Rythme Bureau & TT
             </div>
           </div>
@@ -374,7 +378,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Activités Enfants
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekActivitiesCount} séance{weekActivitiesCount > 1 ? 's' : ''}
               {weekConflictsCount > 0 ? (
                 <span className="text-red-600 dark:text-red-400 text-xs ml-1 font-extrabold">
@@ -397,14 +401,20 @@ export const WeekView: React.FC<WeekViewProps> = ({
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Événements Familiaux
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug sm:truncate">
               {weekEventsCount} événement{weekEventsCount > 1 ? 's' : ''}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Main Weekly Grid Display */}
+      {/* 3. Main Weekly Grid Display (balayage gauche / droite pour changer de semaine) */}
+      <div
+        {...swipe.handlers}
+        style={swipe.style}
+        key={`${weekDateStrings[0]}-${swipe.swipeCount}`}
+        className={`${swipe.enterClass} touch-pan-y`}
+      >
       {displayMode === 'columns' ? (
         /* ================= VUE 1 : GRILLE 7 COLONNES DÉTAILLÉES ================= */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
@@ -446,7 +456,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             return (
               <div
                 key={dateStr}
-                className={`bg-white dark:bg-slate-900 rounded-xl border transition-all flex flex-col min-h-[500px] shadow-xs ${
+                className={`bg-white dark:bg-slate-900 rounded-xl border transition-all flex flex-col lg:min-h-[500px] shadow-xs ${
                   isToday
                     ? 'border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/20'
                     : 'border-slate-200 dark:border-slate-800'
@@ -1180,6 +1190,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
           </div>
         </div>
       )}
+      </div>
 
       {/* 4. Infobulle / Tooltip interactive au survol des vols, activités et événements */}
       <WeekViewTooltip tooltipState={tooltip} />
