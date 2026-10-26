@@ -13,10 +13,10 @@
  * les données restent uniquement sur l'appareil, sans synchronisation.
  */
 export const firebaseConfig = {
-  apiKey: 'A_REMPLACER',
-  authDomain: 'A_REMPLACER',
-  projectId: 'A_REMPLACER',
-  storageBucket: 'A_REMPLACER',
-  messagingSenderId: 'A_REMPLACER',
-  appId: 'A_REMPLACER',
+  apiKey: 'AIzaSyDZiSBasiyW6QXHPtaPtVZCT2-I7URy2_A',
+  authDomain: 'ntahub.firebaseapp.com',
+  projectId: 'ntahub',
+  storageBucket: 'ntahub.firebasestorage.app',
+  messagingSenderId: '746307013458',
+  appId: '1:746307013458:web:79e9e8e9b1570d9c14c88b',
 };
