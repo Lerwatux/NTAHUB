@@ -15,6 +15,8 @@ import {
   LayoutGrid,
   Columns3,
   Sun,
+  TreePalm,
+  Laptop,
   ShieldCheck,
   CalendarDays,
   Info,
@@ -527,7 +529,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         </span>
                         {pncDuty && (
                           <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                            {pncDuty.type === 'vol' ? 'En Vol' : pncDuty.type}
+                            {pncDuty.type === 'vol'
+                              ? 'En Vol'
+                              : pncDuty.type === 'conge'
+                              ? 'Congé'
+                              : pncDuty.type}
                           </span>
                         )}
                       </div>
@@ -549,6 +555,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-950 dark:text-blue-200 hover:border-blue-400'
                               : pncDuty.type === 'off'
                               ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                              : pncDuty.type === 'conge'
+                              ? 'bg-emerald-200 dark:bg-emerald-900/60 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100'
                               : pncDuty.type === 'decoucher'
                               ? 'bg-purple-50/60 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200'
                               : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
@@ -603,8 +611,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
                           {pncDuty.type === 'off' && (
                             <div className="flex items-center gap-1.5 font-medium text-emerald-800 dark:text-emerald-300">
-                              <Sun className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span>Repos PNC (OFF)</span>
+                              {pncDuty.isELearning ? (
+                                <Laptop className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Sun className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              )}
+                              <span>{pncDuty.isELearning ? 'OFF · E-learning' : 'Repos PNC (OFF)'}</span>
+                            </div>
+                          )}
+
+                          {pncDuty.type === 'conge' && (
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <TreePalm className="w-3.5 h-3.5" />
+                              <span>Congé annuel</span>
                             </div>
                           )}
 

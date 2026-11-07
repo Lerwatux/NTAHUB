@@ -57,7 +57,7 @@ export interface PncFlightLeg {
   isReturnToOry: boolean;
 }
 
-export type PncDayType = 'vol' | 'decoucher' | 'cours_au_sol' | 'off' | 'blanc';
+export type PncDayType = 'vol' | 'decoucher' | 'cours_au_sol' | 'off' | 'conge' | 'blanc';
 
 export interface PncDayDuty {
   date: string; // YYYY-MM-DD
@@ -67,6 +67,7 @@ export interface PncDayDuty {
   briefingTime?: string; // HH:mm in Paris local time
   freeTimeAtHome?: string; // HH:mm in Paris local time (1h30 after ORY landing)
   isLayover: boolean; // découcher
+  isELearning?: boolean; // jour OFF avec une formation e-learning
   layoverCity?: string;
   rotationId?: string;
   rawSummary?: string;

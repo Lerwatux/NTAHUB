@@ -56,7 +56,7 @@ export function getClementBusyIntervals(
       const hMin = duty.freeTimeAtHome ? timeToMinutes(duty.freeTimeAtHome) : 18 * 60;
       intervals.push({ start: bMin, end: hMin });
     }
-    // 'off' and 'blanc' mean no scheduled duty flight blocking him
+    // 'off', 'conge' and 'blanc' mean no scheduled duty flight blocking him
   }
 
   // Personal events dedicated to or assigned to Clément

@@ -11,6 +11,7 @@ import {
   BookOpen,
   Laptop,
   ChevronDown,
+  TreePalm,
 } from 'lucide-react';
 import {
   PncDayDuty,
@@ -63,6 +64,8 @@ function clementBandClass(type: PncDayType | undefined): string {
       return 'bg-[#dcb68c] dark:bg-[#7a5a3a]';
     case 'off':
       return 'bg-emerald-300 dark:bg-emerald-700';
+    case 'conge':
+      return 'bg-emerald-500 dark:bg-emerald-900';
     default:
       return ''; // Blanc (astreinte) ou rien de planifié
   }
@@ -390,6 +393,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500" />Travail</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500 bg-hatch" />Télétravail</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700" />Libre</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-900" />Congé annuel</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400">
           <span>Case toute verte = libres ensemble</span>
@@ -413,6 +417,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
             <span>OFF (Vert)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-700 inline-block" />
+            <span>Congé annuel</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-300 inline-block" />
@@ -522,7 +530,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             });
 
             // Common free test
-            const isClementOff = pncDuty?.type === 'off' || !pncDuty;
+            const isClementOff = pncDuty?.type === 'off' || pncDuty?.type === 'conge' || !pncDuty;
             const isIreneFree =
               ireneStatus === 'cp' || ireneStatus === 'rtt' || ireneStatus === 'weekend';
             const isCommonFullFree = isClementOff && isIreneFree;
@@ -548,7 +556,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     className={`sm:hidden absolute inset-0 flex pointer-events-none ${isCurrentMonth ? '' : 'opacity-35'}`}
                     aria-hidden="true"
                   >
-                    {isCommonFullFree && filterMode !== 'clement' && filterMode !== 'irene' ? (
+                    {isCommonFullFree &&
+                    filterMode !== 'clement' &&
+                    filterMode !== 'irene' &&
+                    (pncDuty?.type !== 'conge' || filterMode === 'common_free') ? (
                       <div className="flex-1 bg-emerald-300 dark:bg-emerald-700" />
                     ) : filterMode === 'common_free' ? null : (
                       <>
@@ -624,6 +635,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <Plane className="w-3 h-3" />
                     ) : pncDuty?.type === 'cours_au_sol' ? (
                       <BookOpen className="w-3 h-3" />
+                    ) : pncDuty?.type === 'conge' ? (
+                      <TreePalm className="w-3 h-3" />
+                    ) : pncDuty?.isELearning ? (
+                      <Laptop className="w-3 h-3" />
                     ) : null;
                   const ireneWorking = ireneStatus === 'bureau' || ireneStatus === 'tt';
                   const ireneIcon = ireneWorking ? <Laptop className="w-3 h-3" /> : null;
@@ -632,7 +647,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     : 'text-slate-500 dark:text-slate-500';
 
                   if (filterMode === 'all') {
-                    if (isCommonFullFree || (!clementIcon && !ireneIcon)) return null;
+                    if (!clementIcon && !ireneIcon) return null;
                     return (
                       <div className={`sm:hidden relative flex ${iconTone}`} aria-hidden="true">
                         <span className="flex-1 flex justify-center">
@@ -646,6 +661,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }
 
                   if (filterMode === 'clement' && clementIcon && pncDuty) {
+                    if (pncDuty.type === 'conge' || pncDuty.isELearning) {
+                      return (
+                        <div className={`sm:hidden relative flex flex-col items-center gap-0.5 text-[9px] leading-tight ${iconTone}`}>
+                          {clementIcon}
+                          <span>{pncDuty.type === 'conge' ? 'Congé' : 'E-learn.'}</span>
+                        </div>
+                      );
+                    }
                     return (
                       <div className={`sm:hidden relative flex flex-col items-center gap-0.5 font-mono tabular-nums text-[9px] leading-tight ${iconTone}`}>
                         {clementIcon}
@@ -742,9 +765,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             Début {pncDuty.briefingTime || '09:00'} (sans 1h15 brf)
                           </span>
                         </div>
+                      ) : pncDuty?.type === 'conge' ? (
+                        <div className="flex items-center justify-center gap-1 p-1 bg-emerald-200 dark:bg-emerald-900/70 border border-emerald-400 dark:border-emerald-700 rounded-md text-emerald-950 dark:text-emerald-100 text-[11px] font-semibold">
+                          <TreePalm className="w-3 h-3 shrink-0" />
+                          <span className="truncate">Congé annuel</span>
+                        </div>
                       ) : pncDuty?.type === 'off' ? (
-                        <div className="p-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 rounded-md text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold text-center">
-                          OFF (Libre)
+                        <div className="flex items-center justify-center gap-1 p-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 rounded-md text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold">
+                          {pncDuty.isELearning && <Laptop className="w-3 h-3 shrink-0" />}
+                          <span className="truncate">{pncDuty.isELearning ? 'OFF · E-learning' : 'OFF (Libre)'}</span>
                         </div>
                       ) : (
                         // Blanc = astreinte

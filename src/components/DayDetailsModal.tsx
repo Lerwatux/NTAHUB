@@ -5,6 +5,8 @@ import {
   Home,
   Briefcase,
   Sun,
+  TreePalm,
+  Laptop,
   AlertCircle,
   Plus,
   Trash2,
@@ -189,7 +191,12 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
               )}
               {pncDuty?.type === 'off' && (
                 <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-md">
-                  Repos OFF (Libre)
+                  {pncDuty.isELearning ? 'OFF · E-learning' : 'Repos OFF (Libre)'}
+                </span>
+              )}
+              {pncDuty?.type === 'conge' && (
+                <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-600 text-white rounded-md">
+                  Congé annuel
                 </span>
               )}
               {(!pncDuty || pncDuty.type === 'blanc') && (
@@ -279,11 +286,24 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                   Retour à la maison vers {pncDuty.freeTimeAtHome || '18:30'} (+{settings?.clementGroundCourseTravelMinutes || 90} min trajet).
                 </p>
               </div>
+            ) : pncDuty?.type === 'conge' ? (
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg border border-emerald-400 dark:border-emerald-700 text-xs text-emerald-900 dark:text-emerald-200">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <TreePalm className="w-4 h-4" />
+                  Congé annuel
+                </p>
+                <p className="mt-0.5">Clément est en congé et disponible pour la famille et les enfants.</p>
+              </div>
             ) : pncDuty?.type === 'off' ? (
               <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
-                <p className="font-semibold">Jour OFF officiel (Repos PNC)</p>
+                <p className="font-semibold flex items-center gap-1.5">
+                  {pncDuty.isELearning && <Laptop className="w-4 h-4" />}
+                  {pncDuty.isELearning ? 'Jour OFF · E-learning' : 'Jour OFF officiel (Repos PNC)'}
+                </p>
                 <p className="text-emerald-700 dark:text-emerald-400 mt-0.5">
-                  Clément est complètement disponible toute la journée pour la famille et les enfants.
+                  {pncDuty.isELearning
+                    ? 'Jour OFF avec une formation en ligne à faire.'
+                    : 'Clément est complètement disponible toute la journée pour la famille et les enfants.'}
                 </p>
               </div>
             ) : (
