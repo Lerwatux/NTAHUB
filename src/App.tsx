@@ -49,12 +49,21 @@ import { NotificationDrawer } from './components/NotificationDrawer';
 import { SettingsModal } from './components/SettingsModal';
 import { QuickNotesDrawer } from './components/QuickNotesDrawer';
 import { ExportIcsModal } from './components/ExportIcsModal';
+import { EditDaysModal, ClementDayChange, IreneDayChange } from './components/EditDaysModal';
+import { FormationImportModal } from './components/FormationImportModal';
+import {
+  FormationPlanning,
+  FORMATION_COMMUTE_MINUTES,
+  FORMATION_FULL_DAY_END,
+  FORMATION_START,
+} from './utils/formationPdf';
 import { StickyNote } from 'lucide-react';
 import { getIreneStatusOnDate } from './utils/availability';
 import {
   getDayOfWeekIndex,
   formatParisDate,
   formatParisTime,
+  shiftTime,
   timeToMinutes,
 } from './utils/timezone';
 
@@ -91,6 +100,11 @@ export default function App({ account = null }: AppProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isQuickNotesOpen, setIsQuickNotesOpen] = useState(false);
   const [isExportIcsOpen, setIsExportIcsOpen] = useState(false);
+  const [isFormationImportOpen, setIsFormationImportOpen] = useState(false);
+  const [editDays, setEditDays] = useState<{ dates: string[]; person: UserProfile }>({
+    dates: [],
+    person: 'Clément',
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Reçoit en temps réel les modifications faites sur l'autre téléphone
@@ -339,33 +353,124 @@ export default function App({ account = null }: AppProps) {
     saveFamilyEvents(updated);
   };
 
-  // Update Irene's status for a date
-  const handleUpdateIreneStatus = (date: string, status: IreneWorkStatus) => {
+  // Prévient l'autre parent d'un changement de planning
+  const notifySpouse = (title: string, message: string, relatedDate: string) => {
+    const newNotif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      sender: currentUser,
+      recipient: currentUser === 'Clément' ? 'Irène' : 'Clément',
+      title,
+      message,
+      timestamp: new Intl.DateTimeFormat('fr-FR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(new Date()),
+      isRead: false,
+      relatedDate,
+    };
+    const updatedNotifs = [newNotif, ...notifications];
+    setNotifications(updatedNotifs);
+    saveNotifications(updatedNotifs);
+  };
+
+  const describeDays = (dates: string[]) =>
+    dates.length === 1 ? `le ${dates[0]}` : `du ${dates[0]} au ${dates[dates.length - 1]}`;
+
+  // Modifier à la main un ou plusieurs jours de Clément
+  const handleApplyClementDays = (
+    dates: string[],
+    change: ClementDayChange,
+    startTime: string,
+    endTime: string
+  ) => {
+    const updated = new Map(pncDuties);
+    const label = {
+      off: 'Jour OFF (Repos)',
+      blanc: 'Jour blanc',
+      conge: 'Congé annuel',
+      elearning: 'Jour OFF (E-learning)',
+      cours_au_sol: 'Cours au sol',
+    }[change];
+
+    for (const date of dates) {
+      const duty: PncDayDuty = {
+        date,
+        type: change === 'elearning' ? 'off' : change,
+        title: label,
+        legs: [],
+        isLayover: false,
+        rawSummary: 'Modifié à la main',
+        notes: 'Jour modifié à la main dans NTAHUB.',
+      };
+      if (change === 'elearning') duty.isELearning = true;
+      if (change === 'cours_au_sol') {
+        duty.briefingTime = startTime;
+        duty.freeTimeAtHome = shiftTime(endTime, settings.clementGroundCourseTravelMinutes);
+      }
+      updated.set(date, duty);
+    }
+
+    setPncDuties(updated);
+    savePncDuties(updated);
+    if (currentUser === 'Clément') {
+      notifySpouse('Planning de Clément modifié', `${label} ${describeDays(dates)}.`, dates[0]);
+    }
+  };
+
+  // Ajouter une activité à Irène, ou libérer ses jours
+  const handleApplyIreneDays = (
+    dates: string[],
+    change: IreneDayChange,
+    label: string,
+    startTime: string,
+    endTime: string
+  ) => {
     const updated = new Map(ireneOverrides);
-    updated.set(date, { date, status });
+    for (const date of dates) {
+      updated.set(
+        date,
+        change === 'libre'
+          ? { date, status: 'libre' }
+          : { date, status: 'formation', module: label, startTime, endTime }
+      );
+    }
     setIreneOverrides(updated);
     saveIreneOverrides(updated);
-
     if (currentUser === 'Irène') {
-      const newNotif: AppNotification = {
-        id: `notif-${Date.now()}`,
-        sender: 'Irène',
-        recipient: 'Clément',
-        title: `Planning Irène mis à jour (${date})`,
-        message: `Irène a changé son statut pour le ${date} : ${status.toUpperCase()} (${
-          status === 'tt' ? 'Télétravail à la maison' : status === 'cp' ? 'Congé payé' : 'RTT'
-        }).`,
-        timestamp: new Intl.DateTimeFormat('fr-FR', {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }).format(new Date()),
-        isRead: false,
-        relatedDate: date,
-      };
-      const updatedNotifs = [newNotif, ...notifications];
-      setNotifications(updatedNotifs);
-      saveNotifications(updatedNotifs);
+      notifySpouse(
+        "Planning d'Irène modifié",
+        `${change === 'libre' ? 'Libre' : label} ${describeDays(dates)}.`,
+        dates[0]
+      );
     }
+  };
+
+  // Importer le calendrier de formation : remplace le précédent, garde les ajouts faits à la main
+  const handleImportFormation = (planning: FormationPlanning) => {
+    const updated = new Map(ireneOverrides);
+    updated.forEach((override, date) => {
+      if (override.source === 'pdf') updated.delete(date);
+    });
+    for (const day of planning.days) {
+      if (updated.get(day.date)?.status === 'formation') continue;
+      updated.set(day.date, {
+        date: day.date,
+        status: 'formation',
+        module: day.module,
+        startTime: day.startTime,
+        endTime: day.endTime,
+        source: 'pdf',
+      });
+    }
+    setIreneOverrides(updated);
+    saveIreneOverrides(updated);
+    handleSaveSettings({
+      ...settings,
+      ireneWorkStart: FORMATION_START,
+      ireneWorkEnd: FORMATION_FULL_DAY_END,
+      ireneCommuteGoMinutes: FORMATION_COMMUTE_MINUTES,
+      ireneCommuteReturnMinutes: FORMATION_COMMUTE_MINUTES,
+    });
   };
 
   // Save / Update Child Activity
@@ -544,7 +649,7 @@ export default function App({ account = null }: AppProps) {
   const selectedDayDuty = selectedDate ? pncDuties.get(selectedDate) : undefined;
   const selectedIreneStatus = selectedDate
     ? getIreneStatusOnDate(selectedDate, ireneOverrides)
-    : 'bureau';
+    : 'libre';
   const selectedDayActivities = selectedDate
     ? childActivities.filter((act) => act.dayOfWeek === getDayOfWeekIndex(selectedDate))
     : [];
@@ -590,6 +695,7 @@ export default function App({ account = null }: AppProps) {
               setIsAddEventOpen(true);
             }}
             onOpenIcsImport={() => setCurrentView('pnc')}
+            onEditDays={(dates) => setEditDays({ dates, person: currentUser })}
             onNavigateToWeekView={() => setCurrentView('week')}
           />
         )}
@@ -652,7 +758,8 @@ export default function App({ account = null }: AppProps) {
           onClose={() => setSelectedDate(null)}
           pncDuty={selectedDayDuty}
           ireneStatus={selectedIreneStatus}
-          onUpdateIreneStatus={(st) => handleUpdateIreneStatus(selectedDate, st)}
+          ireneOverride={ireneOverrides.get(selectedDate)}
+          onEditDay={(person) => setEditDays({ dates: [selectedDate], person })}
           childActivities={selectedDayActivities}
           events={selectedDayEvents}
           onDeleteEvent={handleDeleteEvent}
@@ -702,6 +809,17 @@ export default function App({ account = null }: AppProps) {
           setIsSettingsOpen(false);
           setIsExportIcsOpen(true);
         }}
+        onOpenFormationImport={() => {
+          setIsSettingsOpen(false);
+          setIsFormationImportOpen(true);
+        }}
+      />
+
+      {/* Calendrier de formation d'Irène (PDF) */}
+      <FormationImportModal
+        isOpen={isFormationImportOpen}
+        onClose={() => setIsFormationImportOpen(false)}
+        onImport={handleImportFormation}
       />
 
       {/* Export .ics (ouvert depuis les réglages) */}
@@ -737,6 +855,19 @@ export default function App({ account = null }: AppProps) {
           </span>
         )}
       </button>
+
+      {/* Modification d'un ou plusieurs jours */}
+      <EditDaysModal
+        dates={editDays.dates}
+        person={editDays.person}
+        pncDuties={pncDuties}
+        ireneOverrides={ireneOverrides}
+        defaultStart={settings.ireneWorkStart}
+        defaultEnd={settings.ireneWorkEnd}
+        onClose={() => setEditDays({ dates: [], person: currentUser })}
+        onApplyClement={handleApplyClementDays}
+        onApplyIrene={handleApplyIreneDays}
+      />
 
       {/* Quick Notes Drawer */}
       <QuickNotesDrawer

@@ -15,6 +15,8 @@ import {
   LayoutGrid,
   Columns3,
   Sun,
+  TreePalm,
+  Laptop,
   ShieldCheck,
   CalendarDays,
   Info,
@@ -527,7 +529,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         </span>
                         {pncDuty && (
                           <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                            {pncDuty.type === 'vol' ? 'En Vol' : pncDuty.type}
+                            {pncDuty.type === 'vol'
+                              ? 'En Vol'
+                              : pncDuty.type === 'conge'
+                              ? 'Congé'
+                              : pncDuty.type}
                           </span>
                         )}
                       </div>
@@ -549,6 +555,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-950 dark:text-blue-200 hover:border-blue-400'
                               : pncDuty.type === 'off'
                               ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                              : pncDuty.type === 'conge'
+                              ? 'bg-emerald-200 dark:bg-emerald-900/60 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100'
                               : pncDuty.type === 'decoucher'
                               ? 'bg-purple-50/60 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200'
                               : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
@@ -603,8 +611,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
                           {pncDuty.type === 'off' && (
                             <div className="flex items-center gap-1.5 font-medium text-emerald-800 dark:text-emerald-300">
-                              <Sun className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span>Repos PNC (OFF)</span>
+                              {pncDuty.isELearning ? (
+                                <Laptop className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Sun className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              )}
+                              <span>{pncDuty.isELearning ? 'OFF · E-learning' : 'Repos PNC (OFF)'}</span>
+                            </div>
+                          )}
+
+                          {pncDuty.type === 'conge' && (
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <TreePalm className="w-3.5 h-3.5" />
+                              <span>Congé annuel</span>
                             </div>
                           )}
 
@@ -661,6 +680,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         className={`p-2 rounded-lg border text-xs cursor-pointer transition-all hover:shadow-xs ${
                           ireneStatus === 'bureau'
                             ? 'bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/80 text-amber-950 dark:text-amber-200'
+                            : ireneStatus === 'formation'
+                            ? 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-300 dark:border-yellow-800/80 text-yellow-950 dark:text-yellow-100'
                             : ireneStatus === 'tt'
                             ? 'bg-blue-50/60 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/80 text-blue-950 dark:text-blue-200'
                             : ireneStatus === 'cp'
@@ -705,9 +726,21 @@ export const WeekView: React.FC<WeekViewProps> = ({
                           </div>
                         )}
 
-                        {ireneStatus === 'weekend' && (
+                        {ireneStatus === 'formation' && (
+                          <div className="font-semibold flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <Laptop className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ireneOverrides.get(dateStr)?.module || 'Formation'}</span>
+                            </span>
+                            <span className="text-[10px] font-mono shrink-0">
+                              {ireneOverrides.get(dateStr)?.startTime} - {ireneOverrides.get(dateStr)?.endTime}
+                            </span>
+                          </div>
+                        )}
+
+                        {(ireneStatus === 'weekend' || ireneStatus === 'libre') && (
                           <div className="font-semibold text-slate-600 dark:text-slate-400">
-                            🌿 Repos Week-end
+                            🌿 Libre
                           </div>
                         )}
                       </div>
@@ -1014,7 +1047,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
                         // Irene work active
                         const isIreneWorkHour =
-                          (ireneStatus === 'bureau' || ireneStatus === 'tt') &&
+                          (ireneStatus === 'bureau' || ireneStatus === 'tt' || ireneStatus === 'formation') &&
                           hour >= 9 &&
                           hour < 17;
 
@@ -1123,7 +1156,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                     : 'bg-cyan-100 dark:bg-cyan-950/70 text-cyan-900 dark:text-cyan-200 hover:bg-cyan-200'
                                 }`}
                               >
-                                {ireneStatus === 'bureau' ? '🏢 Bureau Irène' : '💻 TT Irène'}
+                                {ireneStatus === 'formation'
+                                  ? `💻 ${ireneOverrides.get(dStr)?.module || 'Formation'}`
+                                  : ireneStatus === 'bureau'
+                                  ? '🏢 Bureau Irène'
+                                  : '💻 TT Irène'}
                               </div>
                             )}
 

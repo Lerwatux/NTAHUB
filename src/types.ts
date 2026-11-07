@@ -37,12 +37,16 @@ export interface FamilyEvent {
   notes?: string;
 }
 
-export type IreneWorkStatus = 'bureau' | 'tt' | 'cp' | 'rtt';
+export type IreneWorkStatus = 'bureau' | 'tt' | 'cp' | 'rtt' | 'formation' | 'libre';
 
 export interface IreneDayOverride {
   date: string; // YYYY-MM-DD
   status: IreneWorkStatus;
   notes?: string;
+  module?: string; // formation ou stage : nom court, ex. "ANAT J1"
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+  source?: 'pdf'; // jour venant du calendrier de formation importé
 }
 
 export interface PncFlightLeg {
@@ -57,7 +61,7 @@ export interface PncFlightLeg {
   isReturnToOry: boolean;
 }
 
-export type PncDayType = 'vol' | 'decoucher' | 'cours_au_sol' | 'off' | 'blanc';
+export type PncDayType = 'vol' | 'decoucher' | 'cours_au_sol' | 'off' | 'conge' | 'blanc';
 
 export interface PncDayDuty {
   date: string; // YYYY-MM-DD
@@ -67,6 +71,7 @@ export interface PncDayDuty {
   briefingTime?: string; // HH:mm in Paris local time
   freeTimeAtHome?: string; // HH:mm in Paris local time (1h30 after ORY landing)
   isLayover: boolean; // découcher
+  isELearning?: boolean; // jour OFF avec une formation e-learning
   layoverCity?: string;
   rotationId?: string;
   rawSummary?: string;
@@ -131,10 +136,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   clementBriefingMinutes: 75, // 1h15
   clementHomeAfterLandingMinutes: 90, // 1h30
   clementGroundCourseTravelMinutes: 90, // 1h30
-  ireneWorkStart: '09:00',
-  ireneWorkEnd: '17:00',
-  ireneCommuteGoMinutes: 90, // 1h30
-  ireneCommuteReturnMinutes: 90, // 1h30
+  ireneWorkStart: '09:30',
+  ireneWorkEnd: '17:30',
+  ireneCommuteGoMinutes: 60, // 1h
+  ireneCommuteReturnMinutes: 60, // 1h
   ireneTtWorkStart: '09:00',
   ireneTtWorkEnd: '17:00',
   darkMode: false,

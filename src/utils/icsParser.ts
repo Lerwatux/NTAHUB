@@ -110,6 +110,48 @@ function extractAirports(text: string): { dep: string; arr: string; flightNo: st
   return { dep, arr, flightNo };
 }
 
+type DayActivity = 'cours_au_sol' | 'conge' | 'elearning' | 'off';
+
+/**
+ * Classe un événement du roster qui n'est pas un vol (null = vol).
+ * Lecture du seul SUMMARY : la description d'un vol contient les trigrammes
+ * de l'équipage, qui peuvent ressembler à "OFF" ou "SOL".
+ */
+function classifyDayActivity(ev: RawIcsEvent): DayActivity | null {
+  const summary = ev.summary
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+
+  if (
+    summary.includes('CS_CSS') ||
+    ev.description.toUpperCase().includes('CS_CSS') ||
+    summary.includes('COURS AU SOL') ||
+    summary.includes('SOL') ||
+    summary.includes('INSTRUCTION') ||
+    /\bSTAND\b.*\bINSTRUCTEUR/.test(summary)
+  ) {
+    return 'cours_au_sol';
+  }
+  // En mots entiers : "CA" ne doit pas se déclencher sur CAG (Cagliari) ou CAB
+  if (/\b(CA|CAHC)\b/.test(summary) || summary.includes('CONGE ANNUEL')) {
+    return 'conge';
+  }
+  if (/\bE[\s-]?LEARNING\b/.test(summary)) {
+    return 'elearning';
+  }
+  if (
+    summary.includes('CP SUR JOUR BLANC') ||
+    summary.includes('OFF') ||
+    summary.includes('REPOS') ||
+    summary.includes('CONGE') ||
+    summary.includes('DISPO')
+  ) {
+    return 'off';
+  }
+  return null;
+}
+
 /**
  * Process raw events into structured PNC duties with French airline rules
  */
@@ -123,10 +165,10 @@ export function processPncEvents(
 
   const dutyMap = new Map<string, PncDayDuty>();
 
-  // Sort events chronologically
-  const sorted = [...rawEvents].sort((a, b) => {
-    return parseIcsDate(a.dtstart).getTime() - parseIcsDate(b.dtstart).getTime();
-  });
+  // Sort events chronologically (le roster contient des lignes ":UNKNOWN" datées de 1899)
+  const sorted = rawEvents
+    .filter((ev) => parseIcsDate(ev.dtstart).getUTCFullYear() >= 2000)
+    .sort((a, b) => parseIcsDate(a.dtstart).getTime() - parseIcsDate(b.dtstart).getTime());
 
   // Group events by Paris local date
   const eventsByDate = new Map<string, RawIcsEvent[]>();
@@ -138,49 +180,70 @@ export function processPncEvents(
       eventsByDate.set(dateKey, []);
     }
     eventsByDate.get(dateKey)!.push(ev);
+
+    // Un congé posé en un seul événement sur plusieurs jours couvre chacun de ces jours.
+    // Repère à midi pour ne pas changer de date au passage heure d'été / heure d'hiver.
+    if (classifyDayActivity(ev) && ev.dtend) {
+      const endTime = parseIcsDate(ev.dtend).getTime();
+      const DAY_MS = 24 * 3600 * 1000;
+      for (let t = startDate.getTime() + DAY_MS + DAY_MS / 2; t < endTime; t += DAY_MS) {
+        const nextKey = formatParisDate(new Date(t));
+        if (!eventsByDate.has(nextKey)) {
+          eventsByDate.set(nextKey, []);
+        }
+        eventsByDate.get(nextKey)!.push(ev);
+      }
+    }
   }
 
-  // First pass: identify ground courses and standalone off days
+  // First pass: identify ground courses, leave and standalone off days
   for (const [dateKey, dayEvents] of eventsByDate.entries()) {
-    const isGroundCourse = dayEvents.some(
-      (e) =>
-        e.summary.toLowerCase().includes('cs_css') ||
-        e.description.toLowerCase().includes('cs_css') ||
-        e.summary.toLowerCase().includes('cours au sol') ||
-        e.summary.toLowerCase().includes('sol') ||
-        e.summary.toLowerCase().includes('instruction')
-    );
+    const activities = dayEvents.map(classifyDayActivity);
+    const groundEvent = dayEvents[activities.indexOf('cours_au_sol')];
 
-    if (isGroundCourse) {
-      const firstEvent = dayEvents[0];
-      const startD = parseIcsDate(firstEvent.dtstart);
-      const endD = firstEvent.dtend ? parseIcsDate(firstEvent.dtend) : new Date(startD.getTime() + 7 * 3600 * 1000);
+    if (groundEvent) {
+      const startD = parseIcsDate(groundEvent.dtstart);
+      const endD = groundEvent.dtend ? parseIcsDate(groundEvent.dtend) : new Date(startD.getTime() + 7 * 3600 * 1000);
       const startTime = formatParisTime(startD);
       const endTime = formatParisTime(endD);
+      // Les activités sur toute la journée sont écrites 00:00 - 01:59 : pas de vrai horaire
+      const hasRealHours = startTime !== '00:00';
 
       dutyMap.set(dateKey, {
         date: dateKey,
         type: 'cours_au_sol',
-        title: 'Cours au sol (CS_CSS)',
+        title: /instructeur/i.test(groundEvent.summary) ? 'Stand instructeur' : 'Cours au sol (CS_CSS)',
         legs: [],
-        briefingTime: startTime, // Rule: briefing rule does NOT apply, starts at indicated time
-        freeTimeAtHome: calculateHomeTime(endD, groundTravelMins),
+        briefingTime: hasRealHours ? startTime : undefined, // Rule: briefing rule does NOT apply, starts at indicated time
+        freeTimeAtHome: hasRealHours ? calculateHomeTime(endD, groundTravelMins) : undefined,
         isLayover: false,
-        rawSummary: firstEvent.summary,
-        notes: `Activité sol certifiée / stage sécurité. Début : ${startTime}. Fin de séance : ${endTime}.`,
+        rawSummary: groundEvent.summary,
+        notes: hasRealHours
+          ? `Activité sol certifiée / stage sécurité. Début : ${startTime}. Fin de séance : ${endTime}.`
+          : 'Activité sol certifiée / stage sécurité.',
       });
-      continue;
-    }
-
-    const isOff = dayEvents.some(
-      (e) =>
-        e.summary.toUpperCase().includes('OFF') ||
-        e.summary.toUpperCase().includes('REPOS') ||
-        e.summary.toUpperCase().includes('CONGE') ||
-        e.summary.toUpperCase().includes('DISPO')
-    );
-
-    if (isOff) {
+    } else if (activities.includes('conge')) {
+      dutyMap.set(dateKey, {
+        date: dateKey,
+        type: 'conge',
+        title: 'Congé annuel',
+        legs: [],
+        isLayover: false,
+        rawSummary: dayEvents[activities.indexOf('conge')].summary,
+        notes: 'Clément est en congé annuel.',
+      });
+    } else if (activities.includes('elearning')) {
+      dutyMap.set(dateKey, {
+        date: dateKey,
+        type: 'off',
+        title: 'Jour OFF (E-learning)',
+        legs: [],
+        isLayover: false,
+        isELearning: true,
+        rawSummary: dayEvents[activities.indexOf('elearning')].summary,
+        notes: 'Jour OFF avec une formation e-learning à faire.',
+      });
+    } else if (activities.includes('off')) {
       dutyMap.set(dateKey, {
         date: dateKey,
         type: 'off',
@@ -205,8 +268,7 @@ export function processPncEvents(
   }[] = [];
 
   for (const ev of sorted) {
-    const text = `${ev.summary} ${ev.description}`.toLowerCase();
-    if (text.includes('cs_css') || text.includes('cours au sol') || text.includes('off') || text.includes('repos')) {
+    if (classifyDayActivity(ev)) {
       continue;
     }
 

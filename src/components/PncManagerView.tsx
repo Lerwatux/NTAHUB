@@ -308,7 +308,12 @@ export const PncManagerView: React.FC<PncManagerViewProps> = ({
                     )}
                     {duty.type === 'off' && (
                       <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-semibold rounded text-[11px]">
-                        OFF (Vert)
+                        {duty.isELearning ? 'OFF (E-learning)' : 'OFF (Vert)'}
+                      </span>
+                    )}
+                    {duty.type === 'conge' && (
+                      <span className="px-2 py-0.5 bg-emerald-600 text-white font-semibold rounded text-[11px]">
+                        Congé annuel
                       </span>
                     )}
                     {duty.type === 'blanc' && (

@@ -10,6 +10,7 @@ import {
   Briefcase,
   Users,
   Sun,
+  TreePalm,
   ShieldCheck,
   AlertTriangle,
   UserCheck,
@@ -325,18 +326,30 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
               <div className="flex items-center gap-2">
                 <div
                   className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    data.duty.type === 'off'
+                    data.duty.type === 'off' || data.duty.type === 'conge'
                       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
                       : data.duty.type === 'decoucher'
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300'
                       : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   }`}
                 >
-                  {data.duty.type === 'off' ? <Sun className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
+                  {data.duty.type === 'conge' ? (
+                    <TreePalm className="w-4 h-4" />
+                  ) : data.duty.isELearning ? (
+                    <Laptop className="w-4 h-4" />
+                  ) : data.duty.type === 'off' ? (
+                    <Sun className="w-4 h-4" />
+                  ) : (
+                    <Briefcase className="w-4 h-4" />
+                  )}
                 </div>
                 <div>
                   <div className="font-bold text-slate-900 dark:text-white text-sm">
-                    {data.duty.type === 'off'
+                    {data.duty.type === 'conge'
+                      ? 'Congé annuel'
+                      : data.duty.isELearning
+                      ? 'OFF · E-learning'
+                      : data.duty.type === 'off'
                       ? 'Repos PNC (OFF)'
                       : data.duty.type === 'decoucher'
                       ? `Découcher à ${data.duty.layoverCity || 'Escale'}`
@@ -354,6 +367,9 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
             </div>
 
             <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+              {data.duty.type === 'conge' && (
+                <p>Clément est en congé et disponible pour la vie de famille.</p>
+              )}
               {data.duty.type === 'off' && (
                 <div className="space-y-2">
                   <p>
@@ -598,8 +614,10 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
                 </div>
                 <div>
                   <div className="font-extrabold text-pink-950 dark:text-pink-200 text-sm">
-                    Travail Irène ·{' '}
-                    {data.status === 'bureau'
+                    Irène ·{' '}
+                    {data.status === 'formation'
+                      ? 'Formation'
+                      : data.status === 'bureau'
                       ? 'Bureau Paris'
                       : data.status === 'tt'
                       ? 'Télétravail'
@@ -607,7 +625,7 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
                       ? 'Congés Payés'
                       : data.status === 'rtt'
                       ? 'RTT'
-                      : 'Repos'}
+                      : 'Libre'}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
                     {formatDateFrench(data.dateStr)}

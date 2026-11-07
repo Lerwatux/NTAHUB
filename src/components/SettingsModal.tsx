@@ -14,6 +14,7 @@ import {
   AlarmClock,
   Sparkles,
   Download,
+  FileUp,
 } from 'lucide-react';
 import { AppSettings, DEFAULT_SETTINGS, ReminderOption } from '../types';
 
@@ -24,6 +25,7 @@ interface SettingsModalProps {
   onSaveSettings: (newSettings: AppSettings) => void;
   onTriggerTestReminder?: (minutes: ReminderOption) => void;
   onOpenExportIcs?: () => void;
+  onOpenFormationImport?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -33,6 +35,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveSettings,
   onTriggerTestReminder,
   onOpenExportIcs,
+  onOpenFormationImport,
 }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>({ ...settings });
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -659,7 +662,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </section>
 
-          {/* 5. EXPORT VERS UN AGENDA EXTERNE (.ics) */}
+          {/* 5. CALENDRIER DE FORMATION D'IRÈNE (PDF) */}
+          {onOpenFormationImport && (
+            <section className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/60 space-y-3">
+              <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+                <FileUp className="w-4 h-4" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Calendrier de formation d'Irène
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Importe le PDF de l'école pour remplir les jours de cours et de stage.
+              </p>
+              <button
+                type="button"
+                onClick={onOpenFormationImport}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/50 border border-pink-200 dark:border-pink-900 rounded-lg"
+              >
+                <FileUp className="w-3.5 h-3.5" />
+                <span>Importer le PDF</span>
+              </button>
+            </section>
+          )}
+
+          {/* 6. EXPORT VERS UN AGENDA EXTERNE (.ics) */}
           {onOpenExportIcs && (
             <section className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/60 space-y-3">
               <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">

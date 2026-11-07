@@ -56,7 +56,7 @@ export function getClementBusyIntervals(
       const hMin = duty.freeTimeAtHome ? timeToMinutes(duty.freeTimeAtHome) : 18 * 60;
       intervals.push({ start: bMin, end: hMin });
     }
-    // 'off' and 'blanc' mean no scheduled duty flight blocking him
+    // 'off', 'conge' and 'blanc' mean no scheduled duty flight blocking him
   }
 
   // Personal events dedicated to or assigned to Clément
@@ -91,7 +91,7 @@ export function getIreneStatusOnDate(
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     return 'weekend';
   }
-  return 'bureau'; // Standard Monday-Friday
+  return 'libre'; // Irène n'a plus de jours de bureau par défaut
 }
 
 /**
@@ -120,8 +120,16 @@ export function getIreneBusyIntervals(
     const startTt = settings ? timeToMinutes(settings.ireneTtWorkStart) : 9 * 60;
     const endTt = settings ? timeToMinutes(settings.ireneTtWorkEnd) : 17 * 60;
     intervals.push({ start: startTt, end: endTt });
+  } else if (status === 'formation') {
+    const override = overrides.get(date);
+    const start = timeToMinutes(override?.startTime || settings?.ireneWorkStart || '09:30');
+    const end = timeToMinutes(override?.endTime || settings?.ireneWorkEnd || '17:30');
+    intervals.push({
+      start: Math.max(0, start - (settings?.ireneCommuteGoMinutes ?? 60)),
+      end: Math.min(1440, end + (settings?.ireneCommuteReturnMinutes ?? 60)),
+    });
   }
-  // 'cp', 'rtt', 'weekend' have no work busy intervals!
+  // 'cp', 'rtt', 'libre', 'weekend' have no work busy intervals!
 
   // Personal events dedicated to or assigned to Irène
   const ireneEvents = events.filter((e) => {

@@ -70,6 +70,14 @@ export function formatParisDate(date: Date): string {
 }
 
 /**
+ * Décale une heure "HH:mm" de quelques minutes, sans dépasser la journée
+ */
+export function shiftTime(time: string, minutes: number): string {
+  const total = Math.min(1439, Math.max(0, timeToMinutes(time) + minutes));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/**
  * Date du jour à Paris : "YYYY-MM-DD"
  */
 export function getTodayParisStr(): string {

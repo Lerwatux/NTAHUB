@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   BookOpen,
   Laptop,
   ChevronDown,
+  TreePalm,
 } from 'lucide-react';
 import {
   PncDayDuty,
@@ -46,11 +47,26 @@ interface CalendarViewProps {
   onOpenAddEvent: (date?: string) => void;
   onOpenIcsImport: () => void;
   onNavigateToWeekView?: () => void;
+  onEditDays: (dates: string[]) => void;
 }
 
 type FilterMode = 'all' | 'clement' | 'irene' | 'children' | 'common_free';
 
 const DAYS_HEADER = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+const LONG_PRESS_MS = 450;
+
+/** Tous les jours de a à b inclus, dans l'ordre */
+function datesBetween(a: string, b: string): string[] {
+  const [start, end] = a <= b ? [a, b] : [b, a];
+  const dates: string[] = [];
+  const cursor = new Date(`${start}T12:00:00Z`);
+  for (let iso = start; iso <= end; iso = cursor.toISOString().slice(0, 10)) {
+    dates.push(iso);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
 
 /** Couleur de la bande verticale de Clément (téléphone) */
 function clementBandClass(type: PncDayType | undefined): string {
@@ -63,6 +79,8 @@ function clementBandClass(type: PncDayType | undefined): string {
       return 'bg-[#dcb68c] dark:bg-[#7a5a3a]';
     case 'off':
       return 'bg-emerald-300 dark:bg-emerald-700';
+    case 'conge':
+      return 'bg-emerald-500 dark:bg-emerald-900';
     default:
       return ''; // Blanc (astreinte) ou rien de planifié
   }
@@ -72,11 +90,12 @@ function clementBandClass(type: PncDayType | undefined): string {
 function ireneBandClass(status: IreneWorkStatus | 'weekend'): string {
   switch (status) {
     case 'bureau':
+    case 'formation':
       return 'bg-yellow-300 dark:bg-yellow-500';
     case 'tt':
       return 'bg-yellow-300 dark:bg-yellow-500 bg-hatch';
     default:
-      return 'bg-emerald-300 dark:bg-emerald-700'; // CP, RTT, week-end
+      return 'bg-emerald-300 dark:bg-emerald-700'; // CP, RTT, libre, week-end
   }
 }
 
@@ -91,6 +110,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onOpenAddEvent,
   onOpenIcsImport,
   onNavigateToWeekView,
+  onEditDays,
 }) => {
   // Mois affiché (par défaut : le mois en cours)
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -138,6 +158,54 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const swipe = useHorizontalSwipe(prevPeriod, nextPeriod);
+
+  // Appui long sur un jour : démarre une sélection, un toucher sur un autre jour la prolonge
+  const [selection, setSelection] = useState<{ anchor: string; end: string } | null>(null);
+  const selectedDates = selection ? datesBetween(selection.anchor, selection.end) : [];
+  const pressTimer = useRef<number | undefined>(undefined);
+  const pressOrigin = useRef({ x: 0, y: 0 });
+  const ignoreNextClick = useRef(false);
+
+  const cancelPress = () => window.clearTimeout(pressTimer.current);
+
+  const beginSelection = (dateStr: string) => {
+    ignoreNextClick.current = true;
+    setSelection({ anchor: dateStr, end: dateStr });
+  };
+
+  const dayPressHandlers = (dateStr: string) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0 || selection) return;
+      pressOrigin.current = { x: e.clientX, y: e.clientY };
+      pressTimer.current = window.setTimeout(() => beginSelection(dateStr), LONG_PRESS_MS);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (Math.hypot(e.clientX - pressOrigin.current.x, e.clientY - pressOrigin.current.y) > 10) {
+        cancelPress();
+      }
+    },
+    onPointerUp: () => {
+      cancelPress();
+      // Certains téléphones n'envoient aucun clic après un appui long
+      if (ignoreNextClick.current) window.setTimeout(() => (ignoreNextClick.current = false), 350);
+    },
+    onPointerLeave: cancelPress,
+    onPointerCancel: cancelPress,
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+      cancelPress();
+      if (!selection) beginSelection(dateStr);
+    },
+    onClick: () => {
+      if (ignoreNextClick.current) {
+        ignoreNextClick.current = false;
+      } else if (selection) {
+        setSelection({ ...selection, end: dateStr });
+      } else {
+        onSelectDay(dateStr);
+      }
+    },
+  });
 
   const todayStr = getTodayParisStr();
 
@@ -387,9 +455,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-300 dark:bg-sky-700" />Vol</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-400 dark:bg-sky-800 bg-hatch" />Découcher</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#dcb68c] dark:bg-[#7a5a3a]" />Sol</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500" />Travail</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500 bg-hatch" />Télétravail</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 dark:bg-yellow-500" />Formation</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700" />Libre</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-900" />Congé annuel</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 dark:text-slate-400">
           <span>Case toute verte = libres ensemble</span>
@@ -397,7 +465,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <span className="flex items-center gap-1"><span className="min-w-[14px] h-3.5 px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-bold flex items-center justify-center">2</span>Événements</span>
           <span>❓ Relais requis</span>
         </div>
-        <div className="text-slate-400">Glissez pour changer de mois · touchez un jour pour le détail.</div>
+        <div className="text-slate-400">Glissez pour changer de mois · touchez un jour pour le détail · restez appuyé pour modifier.</div>
         </div>
         )}
       </div>
@@ -415,6 +483,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <span>OFF (Vert)</span>
           </span>
           <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-700 inline-block" />
+            <span>Congé annuel</span>
+          </span>
+          <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-300 inline-block" />
             <span>Blanc (Astreinte)</span>
           </span>
@@ -427,12 +499,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-semibold text-slate-700 dark:text-slate-300">Famille & Vacances :</span>
           <span className="flex items-center gap-1">
-            <Home className="w-3.5 h-3.5 text-blue-600" />
-            <span>Télétravail</span>
+            <Laptop className="w-3.5 h-3.5 text-yellow-600" />
+            <span>Formation</span>
           </span>
           <span className="flex items-center gap-1">
             <Sun className="w-3.5 h-3.5 text-emerald-600" />
-            <span>CP / RTT</span>
+            <span>Libre</span>
           </span>
           <span className="flex items-center gap-1 font-bold text-rose-600">
             <span>❓</span>
@@ -468,7 +540,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       <div
         {...swipe.handlers}
         style={swipe.style}
-        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors touch-pan-y select-none sm:select-auto"
+        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors touch-pan-y select-none [-webkit-touch-callout:none]"
       >
         {/* Days of week header */}
         <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-center text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 py-2 sm:py-2.5">
@@ -522,9 +594,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             });
 
             // Common free test
-            const isClementOff = pncDuty?.type === 'off' || !pncDuty;
+            const isClementOff = pncDuty?.type === 'off' || pncDuty?.type === 'conge'; // sans planning = blanc
             const isIreneFree =
-              ireneStatus === 'cp' || ireneStatus === 'rtt' || ireneStatus === 'weekend';
+              ireneStatus === 'cp' ||
+              ireneStatus === 'rtt' ||
+              ireneStatus === 'libre' ||
+              ireneStatus === 'weekend';
             const isCommonFullFree = isClementOff && isIreneFree;
 
             // Highlight border if filtered to common free
@@ -533,7 +608,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <div
                 key={dateStr}
-                onClick={() => onSelectDay(dateStr)}
+                {...dayPressHandlers(dateStr)}
                 className={`min-h-[68px] sm:min-h-[125px] p-1 sm:p-2 flex flex-col justify-start sm:justify-between min-w-0 overflow-hidden transition-colors cursor-pointer group relative ${
                   !isCurrentMonth
                     ? 'bg-slate-50/50 dark:bg-slate-950/40 text-slate-400 dark:text-slate-600'
@@ -541,14 +616,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     ? 'bg-amber-50/25 dark:bg-amber-950/20 hover:bg-amber-50/60 dark:hover:bg-amber-950/40'
                     : 'bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/60'
                 } ${isCommonFreeFiltered ? 'ring-2 ring-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/30' : ''}`}
+                aria-selected={selection ? selectedDates.includes(dateStr) : undefined}
               >
+                {selectedDates.includes(dateStr) && (
+                  <div className="absolute inset-0 z-10 pointer-events-none bg-indigo-600/25 ring-2 ring-inset ring-indigo-600" />
+                )}
+
                 {/* Bandes verticales (téléphone) : Clément à gauche, Irène à droite, tout vert si libres ensemble */}
                 {filterMode !== 'children' && (
                   <div
                     className={`sm:hidden absolute inset-0 flex pointer-events-none ${isCurrentMonth ? '' : 'opacity-35'}`}
                     aria-hidden="true"
                   >
-                    {isCommonFullFree && filterMode !== 'clement' && filterMode !== 'irene' ? (
+                    {isCommonFullFree &&
+                    filterMode !== 'clement' &&
+                    filterMode !== 'irene' &&
+                    (pncDuty?.type !== 'conge' || filterMode === 'common_free') ? (
                       <div className="flex-1 bg-emerald-300 dark:bg-emerald-700" />
                     ) : filterMode === 'common_free' ? null : (
                       <>
@@ -624,15 +707,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <Plane className="w-3 h-3" />
                     ) : pncDuty?.type === 'cours_au_sol' ? (
                       <BookOpen className="w-3 h-3" />
+                    ) : pncDuty?.type === 'conge' ? (
+                      <TreePalm className="w-3 h-3" />
+                    ) : pncDuty?.isELearning ? (
+                      <Laptop className="w-3 h-3" />
                     ) : null;
-                  const ireneWorking = ireneStatus === 'bureau' || ireneStatus === 'tt';
+                  const ireneWorking =
+                    ireneStatus === 'bureau' || ireneStatus === 'tt' || ireneStatus === 'formation';
                   const ireneIcon = ireneWorking ? <Laptop className="w-3 h-3" /> : null;
                   const iconTone = isCurrentMonth
                     ? 'text-slate-800 dark:text-white'
                     : 'text-slate-500 dark:text-slate-500';
 
                   if (filterMode === 'all') {
-                    if (isCommonFullFree || (!clementIcon && !ireneIcon)) return null;
+                    if (!clementIcon && !ireneIcon) return null;
                     return (
                       <div className={`sm:hidden relative flex ${iconTone}`} aria-hidden="true">
                         <span className="flex-1 flex justify-center">
@@ -646,6 +734,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }
 
                   if (filterMode === 'clement' && clementIcon && pncDuty) {
+                    if (pncDuty.type === 'conge' || pncDuty.isELearning) {
+                      return (
+                        <div className={`sm:hidden relative flex flex-col items-center gap-0.5 text-[9px] leading-tight ${iconTone}`}>
+                          {clementIcon}
+                          <span>{pncDuty.type === 'conge' ? 'Congé' : 'E-learn.'}</span>
+                        </div>
+                      );
+                    }
                     return (
                       <div className={`sm:hidden relative flex flex-col items-center gap-0.5 font-mono tabular-nums text-[9px] leading-tight ${iconTone}`}>
                         {clementIcon}
@@ -667,8 +763,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                   if (filterMode === 'irene' && ireneWorking) {
                     const s = settings ?? DEFAULT_SETTINGS;
-                    const start = ireneStatus === 'tt' ? s.ireneTtWorkStart : s.ireneWorkStart;
-                    const end = ireneStatus === 'tt' ? s.ireneTtWorkEnd : s.ireneWorkEnd;
+                    const override = ireneOverrides.get(dateStr);
+                    const start = override?.startTime || (ireneStatus === 'tt' ? s.ireneTtWorkStart : s.ireneWorkStart);
+                    const end = override?.endTime || (ireneStatus === 'tt' ? s.ireneTtWorkEnd : s.ireneWorkEnd);
                     return (
                       <div className={`sm:hidden relative flex flex-col items-center gap-0.5 font-mono tabular-nums text-[9px] leading-tight ${iconTone}`}>
                         {ireneIcon}
@@ -742,9 +839,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             Début {pncDuty.briefingTime || '09:00'} (sans 1h15 brf)
                           </span>
                         </div>
+                      ) : pncDuty?.type === 'conge' ? (
+                        <div className="flex items-center justify-center gap-1 p-1 bg-emerald-200 dark:bg-emerald-900/70 border border-emerald-400 dark:border-emerald-700 rounded-md text-emerald-950 dark:text-emerald-100 text-[11px] font-semibold">
+                          <TreePalm className="w-3 h-3 shrink-0" />
+                          <span className="truncate">Congé annuel</span>
+                        </div>
                       ) : pncDuty?.type === 'off' ? (
-                        <div className="p-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 rounded-md text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold text-center">
-                          OFF (Libre)
+                        <div className="flex items-center justify-center gap-1 p-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 rounded-md text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold">
+                          {pncDuty.isELearning && <Laptop className="w-3 h-3 shrink-0" />}
+                          <span className="truncate">{pncDuty.isELearning ? 'OFF · E-learning' : 'OFF (Libre)'}</span>
                         </div>
                       ) : (
                         // Blanc = astreinte
@@ -772,6 +875,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         <div className="flex items-center gap-1 p-1 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-[11px] font-semibold">
                           <Sun className="w-3 h-3 text-emerald-600 shrink-0" />
                           <span>RTT (Libre)</span>
+                        </div>
+                      ) : ireneStatus === 'formation' ? (
+                        <div className="flex items-center gap-1 p-1 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-300 dark:border-yellow-700 rounded-md text-yellow-950 dark:text-yellow-100 text-[11px] font-medium">
+                          <Laptop className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{ireneOverrides.get(dateStr)?.module || 'Formation'}</span>
                         </div>
                       ) : ireneStatus === 'bureau' ? (
                         <div className="p-1 text-slate-500 text-[10px] truncate">
@@ -902,6 +1010,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
+      {/* Barre de sélection de plusieurs jours */}
+      {selection && (
+        <div className="fixed z-40 inset-x-3 md:inset-x-auto md:right-5 md:w-96 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-5 flex items-center gap-2 p-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white shadow-xl">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold">
+              {selectedDates.length} jour{selectedDates.length > 1 ? 's' : ''} sélectionné{selectedDates.length > 1 ? 's' : ''}
+            </p>
+            <p className="text-[11px] text-slate-300 truncate">Touchez le dernier jour pour étendre</p>
+          </div>
+          <button type="button" onClick={() => setSelection(null)} className="px-2.5 py-2 text-xs font-semibold text-slate-200">
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onEditDays(selectedDates);
+              setSelection(null);
+            }}
+            className="px-3 py-2 text-xs font-semibold bg-indigo-600 rounded-lg"
+          >
+            Modifier
+          </button>
+        </div>
+      )}
     </div>
   );
 };
