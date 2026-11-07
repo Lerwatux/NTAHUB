@@ -614,8 +614,10 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
                 </div>
                 <div>
                   <div className="font-extrabold text-pink-950 dark:text-pink-200 text-sm">
-                    Travail Irène ·{' '}
-                    {data.status === 'bureau'
+                    Irène ·{' '}
+                    {data.status === 'formation'
+                      ? 'Formation'
+                      : data.status === 'bureau'
                       ? 'Bureau Paris'
                       : data.status === 'tt'
                       ? 'Télétravail'
@@ -623,7 +625,7 @@ export const WeekViewTooltip: React.FC<WeekViewTooltipProps> = ({ tooltipState }
                       ? 'Congés Payés'
                       : data.status === 'rtt'
                       ? 'RTT'
-                      : 'Repos'}
+                      : 'Libre'}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
                     {formatDateFrench(data.dateStr)}

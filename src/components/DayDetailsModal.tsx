@@ -5,6 +5,7 @@ import {
   Home,
   Briefcase,
   Sun,
+  Pencil,
   TreePalm,
   Laptop,
   AlertCircle,
@@ -18,12 +19,13 @@ import {
 import {
   PncDayDuty,
   IreneWorkStatus,
+  IreneDayOverride,
   ChildActivity,
   FamilyEvent,
   UserProfile,
   AppSettings,
 } from '../types';
-import { formatFrenchDateLong } from '../utils/timezone';
+import { formatFrenchDateLong, shiftTime } from '../utils/timezone';
 import { checkChildActivityConflict } from '../utils/availability';
 import { getZoneCHoliday } from '../utils/holidaysZoneC';
 
@@ -33,7 +35,8 @@ interface DayDetailsModalProps {
   onClose: () => void;
   pncDuty?: PncDayDuty;
   ireneStatus: IreneWorkStatus | 'weekend';
-  onUpdateIreneStatus: (status: IreneWorkStatus) => void;
+  ireneOverride?: IreneDayOverride;
+  onEditDay: (person: UserProfile) => void;
   childActivities: ChildActivity[];
   events: FamilyEvent[];
   onDeleteEvent: (id: string) => void;
@@ -51,7 +54,8 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
   onClose,
   pncDuty,
   ireneStatus,
-  onUpdateIreneStatus,
+  ireneOverride,
+  onEditDay,
   childActivities,
   events,
   onDeleteEvent,
@@ -88,6 +92,8 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
 
   const dateFormatted = formatFrenchDateLong(date);
   const holidayZoneC = getZoneCHoliday(date);
+  const ireneStart = ireneOverride?.startTime || settings?.ireneWorkStart || '09:30';
+  const ireneEnd = ireneOverride?.endTime || settings?.ireneWorkEnd || '17:30';
 
   return (
     <div
@@ -314,9 +320,18 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                 </p>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => onEditDay('Clément')}
+              className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900 rounded-lg"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Modifier ce jour
+            </button>
           </section>
 
-          {/* 2. IRÈNE - PLANNING & MODIFICATION RAPIDE */}
+          {/* 2. IRÈNE - PLANNING & MODIFICATION */}
           <section className="bg-slate-50/80 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -325,11 +340,8 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Irène · Planning de Travail
+                    Irène · Planning
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Horaires réglés : {settings?.ireneWorkStart || '09:00'} - {settings?.ireneWorkEnd || '17h00'} (+{settings?.ireneCommuteGoMinutes || 90} min trajet)
-                  </p>
                 </div>
               </div>
 
@@ -358,74 +370,43 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                     Bureau (Présentiel)
                   </span>
                 )}
-                {ireneStatus === 'weekend' && (
+                {(ireneStatus === 'weekend' || ireneStatus === 'libre') && (
                   <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-md">
-                    Week-end (Repos)
+                    Libre
+                  </span>
+                )}
+                {ireneStatus === 'formation' && (
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 rounded-md">
+                    Formation
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Menu déroulant pour modifier le statut d'Irène */}
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Modifier le planning d'Irène pour ce jour :
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onUpdateIreneStatus('bureau')}
-                  className={`px-2.5 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
-                    ireneStatus === 'bureau'
-                      ? 'bg-slate-800 dark:bg-slate-700 text-white border-slate-800 dark:border-slate-600 font-bold'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/60'
-                  }`}
-                >
-                  🏢 Bureau
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUpdateIreneStatus('tt')}
-                  className={`px-2.5 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
-                    ireneStatus === 'tt'
-                      ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs'
-                      : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900 hover:bg-blue-100'
-                  }`}
-                >
-                  🏠 TT (Maison)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUpdateIreneStatus('cp')}
-                  className={`px-2.5 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
-                    ireneStatus === 'cp'
-                      ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100'
-                  }`}
-                >
-                  🌴 CP (Congé)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUpdateIreneStatus('rtt')}
-                  className={`px-2.5 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
-                    ireneStatus === 'rtt'
-                      ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100'
-                  }`}
-                >
-                  ⚡ RTT
-                </button>
+            {ireneStatus === 'formation' && (
+              <div className="p-3 mb-2 bg-white dark:bg-slate-900 rounded-lg border border-yellow-300 dark:border-yellow-700 text-xs space-y-1">
+                <p className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-white">
+                  <Laptop className="w-4 h-4 shrink-0" />
+                  {ireneOverride?.module || 'Formation'}
+                </p>
+                <p className="font-mono text-slate-700 dark:text-slate-300">
+                  {ireneStart} - {ireneEnd}
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Départ vers {shiftTime(ireneStart, -(settings?.ireneCommuteGoMinutes ?? 60))}, retour vers{' '}
+                  {shiftTime(ireneEnd, settings?.ireneCommuteReturnMinutes ?? 60)}.
+                </p>
               </div>
+            )}
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                {ireneStatus === 'tt'
-                  ? `🏠 En télétravail : reste bleu avec icône maison (${settings?.ireneTtWorkStart || '09:00'} - ${settings?.ireneTtWorkEnd || '17:00'}, 0 trajet).`
-                  : ireneStatus === 'cp' || ireneStatus === 'rtt'
-                  ? '🌴 CP / RTT : passe en vert (libre toute la journée).'
-                  : `🏢 Au bureau : départ estimé ${settings?.ireneWorkStart ? 'avant ' + settings.ireneWorkStart : 'à 07:30'}, travail ${settings?.ireneWorkStart || '09:00'}-${settings?.ireneWorkEnd || '17:00'}, retour maison vers ${settings?.ireneWorkEnd ? 'après ' + settings.ireneWorkEnd : '18:30'}.`}
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => onEditDay('Irène')}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-pink-700 dark:text-pink-300 bg-white dark:bg-slate-900 border border-pink-200 dark:border-pink-900 rounded-lg"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Ajouter une activité ou modifier ce jour
+            </button>
           </section>
 
           {/* 3. ACTIVITÉS DES ENFANTS & DÉTECTION CONFLIT ❓ */}
